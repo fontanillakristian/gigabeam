@@ -14,12 +14,12 @@ function makeDummy(){
 self.window=self; self.document=makeDummy(); self.pdfjsLib=makeDummy(); self.innerWidth=1024; self.innerHeight=768;
 
 // the app scripts, in the same order as js/boot.js, minus the ones that only drive the UI (boot, shell, touch, init)
-const WORKER_SCRIPTS=['state','utils','documents','pages','overlay','tools','properties','dialogs','export','ui','markups-list','bookmarks','forms','flatten','layout','layout-dialog','core'];
+const WORKER_SCRIPTS=['state','utils','documents','pages','overlay','tools','properties','dialogs','export','ui','markups-list','bookmarks','forms','flatten','layout','layout-dialog','ocr','core'];
 
 // load the state the page sent into the shared globals the app code reads
 function applyState(s){
   originalBytes=new Uint8Array(s.bytes.buffer||s.bytes); annotations=s.annotations; layout=s.layout; bookmarks=s.bookmarks;
-  flatPages=new Set(s.flat); scale=s.scale; docs=[{name:s.name}]; activeDoc=0;
+  flatPages=new Set(s.flat); scale=s.scale; docs=[{name:s.name}]; activeDoc=0; ocrPages=s.ocr||{};
   Object.keys(imageStore).forEach(k=>{ delete imageStore[k]; }); Object.assign(imageStore,s.images);
 }
 // images referenced by the result (read from a file) go back with it

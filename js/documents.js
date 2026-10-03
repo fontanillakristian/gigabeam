@@ -73,12 +73,12 @@ function snapshotCurrent(){
   if(activeDoc<0||!docs[activeDoc]) return;
   const t=docs[activeDoc];
   t.pdfDoc=pdfDoc; t.originalBytes=originalBytes; t.numPages=numPages; t.currentPage=currentPage; t.scale=scale;
-  t.annotations=annotations; t.scaleInfo=scaleInfo; t.historyStack=historyStack; t.redoStack=redoStack; t.selected=selected; t.layout=layout; t.bookmarks=bookmarks; t.flatPages=flatPages;
+  t.annotations=annotations; t.scaleInfo=scaleInfo; t.historyStack=historyStack; t.redoStack=redoStack; t.selected=selected; t.layout=layout; t.bookmarks=bookmarks; t.flatPages=flatPages; t.ocrPages=ocrPages;
 }
 async function loadTab(idx){
   snapshotCurrent(); activeDoc=idx; const t=docs[idx];
   pdfDoc=t.pdfDoc; originalBytes=t.originalBytes; numPages=t.numPages; currentPage=t.currentPage; scale=t.scale;
-  annotations=t.annotations; scaleInfo=t.scaleInfo; historyStack=t.historyStack; redoStack=t.redoStack; selected=t.selected; layout=t.layout||newLayout(); bookmarks=t.bookmarks||[]; flatPages=t.flatPages||new Set();
+  annotations=t.annotations; scaleInfo=t.scaleInfo; historyStack=t.historyStack; redoStack=t.redoStack; selected=t.selected; layout=t.layout||newLayout(); bookmarks=t.bookmarks||[]; flatPages=t.flatPages||new Set(); ocrPages=t.ocrPages||{};
   updateScaleLabel();
   syncZoomUI();
   updateHistBtns(); renderTabBar();
@@ -106,7 +106,7 @@ function closeTab(i){
   snapshotCurrent(); // keep the active tab's live state when a different tab is closed
   docs.splice(i,1);
   if(!docs.length){
-    activeDoc=-1; pdfDoc=null; originalBytes=null; numPages=0; annotations={}; selected=null; scaleInfo=null; layout=newLayout(); bookmarks=[]; flatPages=new Set(); updateScaleLabel();
+    activeDoc=-1; pdfDoc=null; originalBytes=null; numPages=0; annotations={}; selected=null; ocrPages={}; scaleInfo=null; layout=newLayout(); bookmarks=[]; flatPages=new Set(); updateScaleLabel();
     layoutToken++; if(pageObserver){ pageObserver.disconnect(); pageObserver=null; }
     pageViews=[]; clearPending(true);
     main.innerHTML=''; main.appendChild(emptyMsg); emptyMsg.style.display='block';

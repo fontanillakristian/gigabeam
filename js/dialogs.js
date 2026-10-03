@@ -95,7 +95,7 @@ async function rotateDialog(){
 async function rotatePages(pages,deg){
   return withPageLock(async()=>{
     const r=await heavy('rotate',{pages,deg}); // rotates the pages and re-expresses every markup against the new view, in the background worker
-    annotations=r.annotations;
+    annotations=r.annotations; if(r.ocr) ocrPages=r.ocr;
     await reloadWorkingDoc(r.bytes,new Set(r.flat));
     await renderPage(); await renderPagePanel();
   });
@@ -120,7 +120,7 @@ async function cropDialog(){
 async function cropPages(pages,f){
   return withPageLock(async()=>{
     const r=await heavy('crop',{pages,area:f}); // f = the rectangle to keep (fractions of the page), or null to remove the crop
-    annotations=r.annotations;
+    annotations=r.annotations; if(r.ocr) ocrPages=r.ocr;
     await reloadWorkingDoc(r.bytes,new Set(r.flat));
     await renderPage(); await renderPagePanel();
   });

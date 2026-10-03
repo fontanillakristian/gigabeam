@@ -82,6 +82,7 @@ function remapPageRefs(fn){
   const mapList=a=>a?Array.from(new Set(a.map(fn).filter(x=>x!=null))).sort((p,q)=>p-q):a;
   ['pageNumbers','headerFooter','watermark'].forEach(k=>{ const L=layout[k]; if(!L) return; if(L.pages) L.pages=mapList(L.pages); if(L.baked) L.baked=mapList(L.baked); });
   if(typeof remapBookmarks==='function') bookmarks=remapBookmarks(bookmarks,fn);
+  if(typeof remapOcrPages==='function') remapOcrPages(fn);
 }
 
 // ---- low-level page-content helpers (pdf-lib)

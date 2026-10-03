@@ -354,3 +354,29 @@ body.drawing .pg-stage,body.drawing .pg-svg{touch-action:none;}   /* with a draw
 .mk-row{user-select:none;-webkit-user-select:none;}
 .ann.msel{border-color:var(--c-accent);border-style:dashed;}
 .mlabel-edit{position:absolute;transform:translate(-50%,-50%);z-index:20;height:auto;padding:2px 6px;font-family:sans-serif;font-weight:600;text-align:center;background:#fff;border:1.5px solid var(--c-accent);border-radius:3px;outline:none;box-shadow:0 2px 8px rgba(0,0,0,.35);}
+
+/* Text layer (selectable page text: the PDF's own, or OCR'd) — invisible glyphs over the page picture, below the markups */
+.textLayer{position:absolute;left:0;top:0;right:0;bottom:0;overflow:hidden;line-height:1;text-size-adjust:none;forced-color-adjust:none;transform-origin:0 0;pointer-events:none;user-select:none;}
+.textLayer span,.textLayer br{color:transparent;position:absolute;white-space:pre;cursor:text;transform-origin:0% 0%;}
+.textLayer .endOfContent{display:block;position:absolute;inset:100% 0 0;z-index:-1;cursor:default;user-select:none;}
+.textLayer ::selection{background:rgba(47,140,255,.35);color:transparent;}
+body.textsel .textLayer{pointer-events:auto;user-select:text;}
+body.textsel .textLayer .endOfContent{user-select:none;}
+body.textsel .pg-svg,body.textsel .pg-svg *,body.textsel .ann,body.textsel .pg-layout{pointer-events:none!important;}
+body.textsel .pg-stage{cursor:text;}
+
+/* Find bar and results */
+#find-bar{position:absolute;top:10px;right:22px;z-index:30;display:flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;background:var(--c-chrome);border:1px solid var(--c-line);border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.45);color:var(--c-dim);}
+#find-bar[hidden]{display:none;}
+#find-input{all:unset;width:200px;color:var(--c-text);font-size:12px;user-select:text;}
+#find-input::placeholder{color:var(--c-faint);}
+#find-count{min-width:62px;text-align:right;font-size:11px;color:var(--c-faint);white-space:nowrap;}
+#find-bar.nomatch #find-count{color:#ff8a8e;}
+.find-case{display:flex;align-items:center;gap:3px;font-size:11px;cursor:pointer;padding:0 4px;} .find-case input{margin:0;}
+.find-layer{position:absolute;inset:0;pointer-events:none;}
+.find-layer .hit{position:absolute;background:rgba(255,213,0,.38);mix-blend-mode:multiply;border-radius:2px;}
+.find-layer .hit.cur{background:rgba(255,140,0,.55);box-shadow:0 0 0 2px rgba(255,120,0,.9);}
+
+/* background task cancel */
+#bg-cancel{height:20px;padding:0 8px;border-radius:var(--r);background:var(--c-raise);color:var(--c-text);font-size:11px;}
+#bg-cancel:hover{background:rgba(229,72,77,.25);}

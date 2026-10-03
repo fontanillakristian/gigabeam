@@ -10,7 +10,7 @@ propsPanel=$('right-panel'),propsBody=$('props-body'),tabBar=$('tab-bar'),
 pagesBtn=$('pages-btn'),pagesPanel=$('left-panel'),pagesList=$('pages-list'),
 addBlankBtn=$('add-blank-btn'),insertPdfBtn=$('insert-pdf-btn'),insertPdfInput=$('insert-pdf-input');
 
-const TOOL_TITLES={ select:'Select / Move', text:'Add Text', callout:'Callout', line:'Line', rect:'Rectangle', ellipse:'Circle/Ellipse',
+const TOOL_TITLES={ select:'Select / Move', textselect:'Select Text', text:'Add Text', callout:'Callout', line:'Line', rect:'Rectangle', ellipse:'Circle/Ellipse',
   polygon:'Polygon (closed shape — click each corner, then close it)', polyline:'Polyline (open line — click each point, then finish it)', cloud:'Revision Cloud (click each corner, then close it)',
   highlighter:'Highlighter', scale:'Calibrate Scale', 'measure-length':'Measure Length', 'measure-area':'Measure Area', checkbox:'Checkbox', radio:'Radio Button', dropdown:'Dropdown' };
 

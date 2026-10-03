@@ -78,20 +78,21 @@ const COMMANDS=[
   ['File','Print…','Ctrl+P',needDoc(()=>{ if(!printBtn.disabled) printBtn.click(); })],
   ['File','-'],['File','Close tab','',needDoc(()=>requestCloseTab(activeDoc))],
   ['Edit','Undo','Ctrl+Z',needDoc(doUndo)],['Edit','Redo','Ctrl+Y',needDoc(doRedo)],['Edit','-'],
+  ['Edit','Find…','Ctrl+F',needDoc(openFind)],['Edit','-'],
   ['Edit','Paste text box','Ctrl+V',needDoc(pasteClipboard)],['Edit','Delete selection','Del',needDoc(deleteSelected)],
   ['View','Zoom in','',needDoc(()=>zoomInBtn.click())],['View','Zoom out','',needDoc(()=>zoomOutBtn.click())],
   ['View','Fit width','',needDoc(()=>fitZoom('width'))],['View','Fit page','',needDoc(()=>fitZoom('page'))],['View','Actual size (100%)','',needDoc(()=>setZoom(1.25))],['View','-'],
   ['View','Toggle pages panel','',()=>pagesBtn.click()],['View','Toggle properties panel','',()=>propsBtn.click()],['View','Show markups list','',()=>showLeft('markups')],['View','Show bookmarks','',()=>showLeft('bookmarks')],['View','Show pages panel','',()=>showLeft('pages')],
-  ['Document','Rotate pages…','',needDoc(rotateDialog)],['Document','Crop pages…','',needDoc(cropDialog)],['Document','Flatten markups…','',needDoc(flattenDialog)],['Document','-'],
+  ['Document','Rotate pages…','',needDoc(rotateDialog)],['Document','Crop pages…','',needDoc(cropDialog)],['Document','Recognize text (OCR)…','',needDoc(ocrDialog)],['Document','Flatten markups…','',needDoc(flattenDialog)],['Document','-'],
   ['Document','Insert blank page','',needDoc(()=>addBlankBtn.click())],['Document','Insert PDF…','',needDoc(()=>insertPdfBtn.click())],['Document','-'],
   ['Document','Header & footer…','',needDoc(headerFooterDialog)],['Document','Page numbers…','',needDoc(pageNumbersDialog)],['Document','Watermark…','',needDoc(watermarkDialog)],['Document','Bookmark this page','',needDoc(()=>addBookmark(false))],['Document','Unflatten…','',needDoc(unflattenDialog)],
   ['Markup','Text','T',tl('text')],['Markup','Callout','C',tl('callout')],['Markup','Line','L',tl('line')],['Markup','Rectangle','R',tl('rect')],['Markup','Ellipse','E',tl('ellipse')],
   ['Markup','Polygon','',tl('polygon')],['Markup','Polyline','',tl('polyline')],['Markup','Revision cloud','',tl('cloud')],['Markup','Highlighter','Shift+H',tl('highlighter')],
   ['Forms','Checkbox','',tl('checkbox')],['Forms','Radio button','',tl('radio')],['Forms','Dropdown','',tl('dropdown')],['Forms','-'],['Forms','Reset all fields','',needDoc(resetAllFields)],
   ['Measure','Calibrate scale','',tl('scale')],['Measure','Measure length','',tl('measure-length')],['Measure','Measure area','',tl('measure-area')],
-  ['Tools','Select / Move','V',tl('select')],['Tools','Pan','H',tl('pan')],['Tools','-'],
+  ['Tools','Select / Move','V',tl('select')],['Tools','Pan','H',tl('pan')],['Tools','Select text','X',tl('textselect')],['Tools','-'],
   ['Tools','Insert image…','',needDoc(()=>$('image-btn').click())],['Tools','Signature…','',needDoc(signatureDialog)],
-  ['Help','Keyboard shortcuts','',()=>modalAlert('<b>Shortcuts</b><br>V Select · H Pan · T Text · C Callout · L Line · R Rectangle · E Ellipse · Shift+H Highlighter<br>Ctrl+O Open · Ctrl+S Save · Ctrl+P Print · Ctrl+Z Undo · Ctrl+Y Redo · Ctrl+C / Ctrl+V copy / paste a text box · Ctrl+K search commands · Esc cancel the current tool')],
+  ['Help','Keyboard shortcuts','',()=>modalAlert('<b>Shortcuts</b><br>V Select · H Pan · X Select text · T Text · C Callout · L Line · R Rectangle · E Ellipse · Shift+H Highlighter<br>Ctrl+O Open · Ctrl+S Save · Ctrl+Shift+S Save as · Ctrl+F Find · Ctrl+P Print · Ctrl+Z Undo · Ctrl+Y Redo · Ctrl+C / Ctrl+V copy / paste a text box · Ctrl+K search commands · Esc cancel the current tool')],
 ];
 const menuPop=$('menu-pop'), cmdPop=$('cmd-pop');
 function closeMenus(){ menuPop.classList.remove('show'); cmdPop.classList.remove('show'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('open')); }
@@ -122,7 +123,7 @@ cmdIn.addEventListener('keydown',e=>{
 cmdPop.addEventListener('click',e=>{ const mi=e.target.closest('.mi'); if(mi&&mi.dataset.h!=null) runHit(+mi.dataset.h); });
 
 // ---- keyboard shortcuts
-const KEYTOOL={v:'select',h:'pan',t:'text',c:'callout',l:'line',r:'rect',e:'ellipse'};
+const KEYTOOL={v:'select',h:'pan',x:'textselect',t:'text',c:'callout',l:'line',r:'rect',e:'ellipse'};
 document.addEventListener('keydown',e=>{
   if(document.querySelector('.modal-ovl')) return;
   const a=document.activeElement, tag=(a&&a.tagName)||'', typing=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT', k=e.key.toLowerCase();
@@ -131,6 +132,7 @@ document.addEventListener('keydown',e=>{
     else if(k==='s'){ e.preventDefault(); if(pdfDoc&&!downloadBtn.disabled){ if(e.shiftKey) saveActiveDocument({saveAs:true}); else downloadBtn.click(); } }
     else if(k==='p'){ e.preventDefault(); if(!printBtn.disabled) printBtn.click(); }
     else if(k==='k'){ e.preventDefault(); cmdIn.focus(); cmdIn.select(); }
+    else if(k==='f'){ e.preventDefault(); openFind(); }
     else if(!typing&&k==='z'&&!e.shiftKey){ e.preventDefault(); doUndo(); }
     else if(!typing&&(k==='y'||(k==='z'&&e.shiftKey))){ e.preventDefault(); doRedo(); }
     return;

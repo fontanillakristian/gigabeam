@@ -238,6 +238,7 @@ async function buildExportBytes(){
     // Everything that isn't a markup (page numbers, header/footer, watermark, bookmarks, form fields)
     // is regenerated from app state on every save — see exportExtras().
     await exportExtras({pdf,pages,font,ctxP,addAnnot,setGeo:g=>{ curGeo=g; },hexArr,keptWidgetRefs});
+    exportOcrText({pdf,pages,font,ctxP}); // recognised text, as an invisible searchable layer
     return pdf.save(SAVE_OPTS);
 }
 

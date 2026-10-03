@@ -25,6 +25,8 @@
     'js/flatten.js',
     'js/layout.js',
     'js/layout-dialog.js',
+    'js/ocr.js',
+    'js/text.js',
     'js/core.js',
     'js/worker-api.js',
     'js/shell.js',

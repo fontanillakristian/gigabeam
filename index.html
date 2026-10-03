@@ -44,6 +44,7 @@
   <div class="grp" id="tool-groups">
     <button class="tb tool active" data-tool="select" data-tip="Select / Move (V)" disabled><svg class="i"><use href="#i-select"/></svg></button>
     <button class="tb tool" data-tool="pan" data-tip="Pan (H)" disabled><svg class="i"><use href="#i-pan"/></svg></button>
+    <button class="tb tool" data-tool="textselect" data-tip="Select text (X)" disabled><svg class="i"><use href="#i-textselect"/></svg></button>
   </div>
   <span class="sep"></span>
   <div class="seg" id="mode-tabs">
@@ -85,6 +86,7 @@
   <div class="modeset" data-mode="document" style="display:none">
     <button class="tb rib-btn" id="rotate-btn" data-tip="Rotate pages" disabled><svg class="i"><use href="#i-rotate"/></svg></button>
     <button class="tb rib-btn" id="crop-btn" data-tip="Crop pages" disabled><svg class="i"><use href="#i-crop"/></svg></button>
+    <button class="tb rib-btn" id="ocr-btn" data-tip="Recognize text (OCR): make scanned pages selectable and searchable" disabled><svg class="i"><use href="#i-ocr"/></svg></button>
     <span class="sep"></span>
     <button class="tb rib-btn" id="hf-btn" data-tip="Header & footer" disabled><svg class="i"><use href="#i-header"/></svg></button>
     <button class="tb rib-btn" id="pn-btn" data-tip="Page numbers" disabled><svg class="i"><use href="#i-pagenum"/></svg></button>
@@ -145,6 +147,7 @@
   </aside>
 
   <div id="canvas-wrap">
+    <div id="find-bar" hidden><svg class="i sm"><use href="#i-search"/></svg><input id="find-input" placeholder="Find in document" aria-label="Find in document" autocomplete="off"><span id="find-count"></span><label class="find-case" title="Match case"><input type="checkbox" id="find-case">Aa</label><button id="find-prev" class="icon-btn" title="Previous (Shift+Enter)"><svg class="i sm"><use href="#i-up"/></svg></button><button id="find-next" class="icon-btn" title="Next (Enter)"><svg class="i sm"><use href="#i-chev"/></svg></button><button id="find-close" class="icon-btn" title="Close (Esc)"><svg class="i sm"><use href="#i-x"/></svg></button></div>
     <main id="main">
       <div class="empty" id="empty-msg">
         <div class="badge-i"><svg class="i"><use href="#i-pages"/></svg></div>
@@ -189,7 +192,7 @@
   <span class="vsep"></span>
   <span id="paper-size"></span>
   <span class="spacer"></span>
-  <span id="bg-task"><span id="bg-msg"></span><span class="bg-bar"><i id="bg-fill"></i></span></span>
+  <span id="bg-task"><span id="bg-msg"></span><span class="bg-bar"><i id="bg-fill"></i></span><button id="bg-cancel" type="button" hidden>Cancel</button></span>
   <span id="coords"></span>
   <span class="vsep"></span>
   <div class="grp">

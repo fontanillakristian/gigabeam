@@ -172,7 +172,8 @@ function updateToolButtons(){
   document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('active', b.dataset.tool===tool));
   $('tool-name').textContent=TOOL_TITLES[tool]||(tool==='areapick'?'Select area':'');
   document.body.classList.toggle('pan',tool==='pan');
-  document.body.classList.toggle('drawing',tool!=='select'&&tool!=='pan'); // (touch: fingers draw instead of scroll)
+  document.body.classList.toggle('drawing',tool!=='select'&&tool!=='pan'&&tool!=='textselect'); // (touch: fingers draw instead of scroll)
+  document.body.classList.toggle('textsel',tool==='textselect'); // the text layer takes the mouse; markups let it through
 }
 function setToolButtonsDisabled(v){ document.querySelectorAll('.tool,.rib-btn,#scale-select').forEach(b=>b.disabled=v); }
 setToolButtonsDisabled(true);

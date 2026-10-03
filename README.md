@@ -8,7 +8,10 @@ Built for drawings and plan sets, but it works on any PDF.
 
 - **View** big files quickly: page 1 appears in well under a second even for 800+ page sets, pages and thumbnails render lazily, and progress is shown while opening.
 - **Markups:** text boxes, callouts, lines, rectangles, ellipses, polygons, polylines, revision clouds, highlighter, images and signatures. Every markup is saved as a real PDF annotation, so it stays editable in this editor and visible in other viewers.
-- **Measure:** calibrate a scale (or pick a template), then measure lengths and areas.
+- **Measure:** calibrate a scale (or pick a template), then measure lengths and areas. Labels can be replaced with your own text.
+- **Text:** select and copy page text (Select text tool, X), and **Find** (Ctrl+F) with highlighted results.
+- **OCR:** recognize the text of scanned pages (Document > Recognize text), offline, English. Saving writes it into the PDF as invisible text, so the file becomes searchable anywhere.
+- **Other programs' markups and form fields** are shown and kept when saving.
 - **Forms:** checkbox, radio button and dropdown fields (real AcroForm fields), editable in a tabbed Properties panel and fillable in place.
 - **Document tools:** rotate, crop, insert / delete / reorder pages, insert another PDF.
 - **Page numbers, header & footer, watermark** (text or image, over / blend / behind the page).
@@ -42,7 +45,8 @@ The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf
 | Key | Action | Key | Action |
 | --- | --- | --- | --- |
 | `V` | Select / Move | `Ctrl+O` | Open |
-| `H` | Pan | `Ctrl+S` | Save |
+| `H` | Pan | `Ctrl+S` / `Ctrl+Shift+S` | Save / Save as |
+| `X` | Select text | `Ctrl+F` | Find |
 | `T` `C` `L` `R` `E` | Text, Callout, Line, Rectangle, Ellipse | `Ctrl+P` | Print |
 | `Shift+H` | Highlighter | `Ctrl+Z` / `Ctrl+Y` | Undo / Redo |
 | `Esc` | Cancel the current tool | `Ctrl+K` | Search commands |
@@ -95,6 +99,8 @@ The app is plain JavaScript (no framework, no bundler). The files are ordinary s
 | `flatten.js` | flatten / unflatten |
 | `layout.js` | page numbers, header & footer, watermark: data model, live overlay, PDF export |
 | `layout-dialog.js` | the tabbed Page layout dialog for those three |
+| `ocr.js` | text recognition (Tesseract.js) and writing the recognized text into the saved PDF |
+| `text.js` | the selectable text layer, the Select text tool, and Find |
 | `core.js` | the heavy PDF work (save, print, page operations, flatten, inspect) as plain functions |
 | `worker-api.js` | `heavy()`: runs a `core.js` function in the background worker, or on the main thread if no worker is available |
 | `pdf-worker.js` | the worker; loads pdf-lib and the same app scripts against a stubbed DOM |
@@ -120,6 +126,8 @@ Current versions of Chrome, Edge, Firefox and Safari.
 - "Behind page content" watermarks are hidden by opaque scanned pages; use "Blend with page" for scans.
 - Touch and pen input has been tested with simulated events only, not on real devices.
 - Saved annotations and form fields have been checked with pdf.js only, not Acrobat or Bluebeam.
+- OCR is English only and does not read handwriting. Text pages take about 3–5 seconds each; dense drawing sheets 20–60 seconds. Words it is unsure of (under 40% confidence) are left out. Other programs' markups and form fields are shown and kept, but can't be edited here.
+
 ## License
 
 Copyright (C) 2026 Kristian Carl B. Fontanilla

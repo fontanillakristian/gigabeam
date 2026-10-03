@@ -47,7 +47,7 @@ const CORE={
   // ---- page operations
   async deletePage(p){ const doc=await loadPdf(originalBytes); (p.ns||[p.n]).slice().sort((a,b)=>b-a).forEach(n=>doc.removePage(n-1)); return finishDoc(doc); }, // p.ns: several pages at once (removed from the end so numbers stay valid)
   async insertBlank(p){
-    const doc=await loadPdf(originalBytes), ref=doc.getPage(Math.min(p.after-1,doc.getPageCount()-1)), g=pageGeom(ref); // the size you SEE (rotation / crop applied)
+    const doc=await loadPdf(originalBytes), ref=doc.getPage(Math.max(0,Math.min(p.after-1,doc.getPageCount()-1))), g=pageGeom(ref); // the size you SEE (rotation / crop applied)
     doc.insertPage(p.after,[g.W,g.H]); return finishDoc(doc);
   },
   async insertPdf(p){
@@ -64,7 +64,7 @@ const CORE={
     const doc=await loadPdf(originalBytes);
     p.pages.forEach(n=>{ const pg=doc.getPage(n-1), oldG=pageGeom(pg);
       pg.setRotation(PDFLib.degrees((((pg.getRotation().angle+p.deg)%360)+360)%360)); remapPageAnnotations(n,oldG,pageGeom(pg)); });
-    return finishDoc(doc,{annotations});
+    return finishDoc(doc,{annotations,ocr:ocrPages});
   },
   async crop(p){
     const doc=await loadPdf(originalBytes), f=p.area;
@@ -73,7 +73,7 @@ const CORE={
         pg.setCropBox(x,y,Math.max(...xs)-x,Math.max(...ys)-y); }
       else { const mb=pg.getMediaBox(); pg.setCropBox(mb.x,mb.y,mb.width,mb.height); }
       remapPageAnnotations(n,oldG,pageGeom(pg)); });
-    return finishDoc(doc,{annotations});
+    return finishDoc(doc,{annotations,ocr:ocrPages});
   },
 
   // ---- flatten: bake each page's markups into ONE extra content stream. With "allow unflatten" the stream is tagged (CEFL) and the

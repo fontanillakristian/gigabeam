@@ -32,9 +32,10 @@ function pageGeom(page){
 // When a page's rotation or crop changes, every markup on it is re-expressed against the new view
 // (points follow the page; text boxes and images keep their physical size and stay upright).
 function remapPageAnnotations(n,oldG,newG){
-  const d=annotations[n]; if(!d) return;
   const Wo=oldG.W,Ho=oldG.H,Wn=newG.W,Hn=newG.H;
   const mapPt=(x,y)=>{ const u=oldG.toUser(x*Wo,(1-y)*Ho); const nd=newG.fromUser(u.x,u.y); return {x:nd.x/Wn,y:1-nd.y/Hn}; };
+  if(typeof remapOcrPage==='function') remapOcrPage(n,mapPt,newG.rot-oldG.rot); // recognised text moves with the page
+  const d=annotations[n]; if(!d) return;
   const mapBox=(cx,cy,wpt,hpt)=>{ const c=mapPt(cx,cy), bw=wpt/Wn, bh=hpt/Hn; return {fx:c.x-bw/2,fy:c.y-bh/2,bw,bh}; };
   (d.shapes||[]).forEach(s=>{ const a=mapPt(s.x1,s.y1), b=mapPt(s.x2,s.y2); s.x1=a.x;s.y1=a.y;s.x2=b.x;s.y2=b.y; });
   (d.paths||[]).concat(d.measurements||[]).forEach(o=>{ o.points=o.points.map(p=>mapPt(p.x,p.y)); });
@@ -119,7 +120,7 @@ function swallowNextClick(){ suppressClickUntil=Date.now()+120; } // a drag's mo
 // bytes from before the operation so they can be undone too; only the newest few keep their bytes, to bound memory.
 const MAX_HISTORY=60, MAX_BYTE_SNAPSHOTS=5;
 let historyBusy=false;
-function snapshot(withBytes){ return {ann:clone(annotations),layout:clone(layout),bm:clone(bookmarks),page:currentPage,bytes:withBytes?originalBytes:null}; }
+function snapshot(withBytes){ return {ann:clone(annotations),layout:clone(layout),bm:clone(bookmarks),page:currentPage,bytes:withBytes?originalBytes:null,ocr:withBytes?Object.assign({},ocrPages):null}; } // (page operations renumber / move the OCR text too; its word lists are never changed in place)
 // ---- unsaved changes: a tab is "dirty" from its first edit until it is saved
 function markDirty(){ const t=docs[activeDoc]; if(t&&!t.dirty){ t.dirty=true; renderTabBar(); } }
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -139,6 +140,7 @@ async function stepHistory(from,to){ // pop one entry off `from`, put the curren
     if(s.lost){ from.length=0; toast('That page operation is too old to undo'); return; }
     to.push(snapshot(!!s.bytes)); markDirty();
     annotations=s.ann; layout=s.layout; bookmarks=s.bm; selected=null;
+    if(s.ocr) ocrPages=s.ocr;
     if(s.bytes&&s.bytes!==originalBytes){ // a page operation: bring the file back too
       bgTask('Restoring…',null); await tick();
       try{ await reloadWorkingDoc(s.bytes); currentPage=Math.min(s.page,numPages); await renderPage(); await renderPagePanel(); } finally{ bgTask(null); }

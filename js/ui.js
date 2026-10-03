@@ -13,7 +13,7 @@ document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>set
 const tick=()=>new Promise(r=>{ let done=false; const fin=()=>{ if(!done){ done=true; r(); } }; requestAnimationFrame(()=>setTimeout(fin,0)); setTimeout(fin,80); });
 function showLoad(title,msg,pct){ const c=$('load-card'); c.style.display='flex'; $('lc-title').textContent=title; $('lc-msg').textContent=msg; $('lc-fill').style.width=Math.max(3,Math.min(100,pct))+'%'; }
 function hideLoad(){ $('load-card').style.display='none'; }
-function bgTask(msg,pct){ const b=$('bg-task'); if(msg==null){ b.style.display='none'; return; } b.style.display='flex'; $('bg-msg').textContent=msg; const f=$('bg-fill'); f.parentElement.classList.toggle('ind',pct==null); f.style.width=pct==null?'':Math.min(100,pct)+'%'; }
+function bgTask(msg,pct,onCancel){ const b=$('bg-task'), cb=$('bg-cancel'); if(msg==null){ b.style.display='none'; cb.hidden=true; cb.onclick=null; return; } b.style.display='flex'; $('bg-msg').textContent=msg; const f=$('bg-fill'); f.parentElement.classList.toggle('ind',pct==null); f.style.width=pct==null?'':Math.min(100,pct)+'%'; cb.hidden=!onCancel; cb.onclick=onCancel||null; } // onCancel: show a Cancel button
 // pdf-lib yields to the browser every 100 objects by default, which is ~8x slower on big files; Fastest parses in one go.
 const SAVE_OPTS={objectsPerTick:Infinity}; // pdf-lib saves in one go instead of yielding every 50 objects
 function loadPdf(bytes,opts){ return PDFLib.PDFDocument.load(bytes,Object.assign({parseSpeed:PDFLib.ParseSpeeds.Fastest},opts)); }

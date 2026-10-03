@@ -34,7 +34,7 @@ function workerState(){
   const images={}, need=id=>{ if(id&&imageStore[id]) images[id]=imageStore[id]; };
   Object.values(annotations).forEach(d=>(d.images||[]).forEach(im=>need(im.imgId)));
   if(layout.watermark) need(layout.watermark.imgId);
-  return {bytes,annotations,layout,bookmarks,flat:Array.from(flatPages),scale,name:(docs[activeDoc]&&docs[activeDoc].name)||'',images};
+  return {bytes,annotations,layout,bookmarks,flat:Array.from(flatPages),scale,name:(docs[activeDoc]&&docs[activeDoc].name)||'',images,ocr:ocrPages};
 }
 // images the worker read out of a file arrive with the result; keep them under the same ids
 function adoptImages(res){ if(res&&res.images) Object.keys(res.images).forEach(id=>{ if(!imageStore[id]) imageStore[id]=res.images[id]; }); return res; }
@@ -44,7 +44,7 @@ function adoptImages(res){ if(res&&res.images) Object.keys(res.images).forEach(i
 async function heavy(op,params,opts){
   params=params||{};
   if(!pdfWorker.failed&&await startWorker()){
-    const id=++pdfWorker.seq, state=(opts&&opts.stateless)?{bytes:new Uint8Array(0),annotations:{},layout:newLayout(),bookmarks:[],flat:[],scale:1.25,name:'',images:{}}:workerState(), transfer=[state.bytes.buffer];
+    const id=++pdfWorker.seq, state=(opts&&opts.stateless)?{bytes:new Uint8Array(0),annotations:{},layout:newLayout(),bookmarks:[],flat:[],scale:1.25,name:'',images:{},ocr:{}}:workerState(), transfer=[state.bytes.buffer];
     if(params.src) transfer.push(params.src.buffer);
     if(params.bytes) transfer.push(params.bytes.buffer);
     try{
