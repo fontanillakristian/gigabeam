@@ -16,7 +16,7 @@ function sectionProps(groups){
 // ---- form fields: checkbox / radio button / dropdown (real AcroForm fields in the saved PDF)
 const FORM_TOOLS=['checkbox','radio','dropdown'];
 const FIELD_LABEL={checkbox:'Checkbox',radio:'Radio button',dropdown:'Dropdown'};
-const FIELD_STYLE_KEYS=['visibility','orient','readOnly','required','border','borderColor','fill','fillColor','thickness','style','font','fontSize','textColor','checkStyle'];
+const FIELD_STYLE_KEYS=['visibility','orient','readOnly','required','border','borderColor','fill','fillColor','thickness','style','font','fontSize','textColor','checkStyle','bold','italic','strike','sup','sub'];
 const FIELD_CSS_FONT={Helvetica:'Helvetica, Arial, sans-serif',Times:'"Times New Roman", Times, serif',Courier:'"Courier New", Courier, monospace'};
 const fieldDefaults={};
 let lastRadioGroup=null; // consecutive radio buttons join one group until you switch tools
@@ -93,6 +93,9 @@ function fieldNode(f,W,H){
   }
   if(f.type==='dropdown'){
     const fs=fieldFontPx(f,h,k), inner=svgEl('svg',{x,y,width:w,height:h,overflow:'hidden'}), tx=svgEl('text',{x:t+3*k,y:h/2,'dominant-baseline':'central','font-size':fs,fill:f.textColor,'font-family':FIELD_CSS_FONT[f.font]||FIELD_CSS_FONT.Helvetica});
+    { const sup=!!f.sup, sub=!sup&&!!f.sub; // bold / italic / strikethrough / superscript / subscript
+      if(f.bold) tx.setAttribute("font-weight","700"); if(f.italic) tx.setAttribute("font-style","italic"); if(f.strike) tx.setAttribute("text-decoration","line-through");
+      if(sup||sub){ tx.setAttribute("font-size",fs*RT_SCALE); tx.setAttribute("y",h/2-(sup?fs*RT_RAISE:-fs*RT_LOWER)); } }
     tx.textContent=f.value||''; inner.appendChild(tx); g.appendChild(inner);
     const ax=x+w-Math.min(h*0.7,16*k)-t, ay=y+h/2; g.appendChild(svgEl('polyline',{points:`${ax},${ay-2*k} ${ax+4*k},${ay+2*k} ${ax+8*k},${ay-2*k}`,fill:'none',stroke:f.border?f.borderColor:'#666','stroke-width':1.4,'stroke-linecap':'round','stroke-linejoin':'round'}));
   } else if(f.checked){
@@ -163,6 +166,7 @@ function renderFieldProps(f,pg){
       <div class="fp-sec"><h5>Text</h5>
       <label>Font${sel('f-font',[['Helvetica','Helvetica'],['Times','Times'],['Courier','Courier']],f.font)}</label>
       ${f.type==='dropdown'?num('f-fs','Font size (0 = auto)',f.fontSize,'min="0" max="72"'):''}
+      ${f.type==='dropdown'?`<label style="margin-top:8px">Text style</label>`+fmtRowHTML(f,'fmt-field'):''}
       <label>${f.type==='dropdown'?'Text color':'Mark color'}<input type="color" id="f-tc" value="${f.textColor}"></label></div>`;
   } else if(f.type==='checkbox'){
     body=`<div class="fp-sec"><label>Check style${sel('f-cs',STY,f.checkStyle)}</label><label>Export value<input id="f-ev" value="${esc(f.exportValue)}"></label>${chk('f-chk','Checked by default',f.defChecked)}
@@ -191,6 +195,7 @@ function renderFieldProps(f,pg){
     <div class="fp-actions"><button id="f-dup">Duplicate</button><button id="f-def">Set as default</button><button id="p-del">Delete field</button></div>`;
   propsBody.querySelectorAll('.ptabs button').forEach(b=>b.onclick=()=>{ renderFieldProps.tab=b.dataset.t; renderProps(); });
   const redraw=()=>{ buildSvg(pg); scheduleMarkups(); };
+  if($('fmt-field')) bindFmtRow('fmt-field',f,redraw);
   const bind=(id,fn,evt)=>{ const el=$(id); if(!el) return; let pushed=false; el.addEventListener('focus',()=>{ pushed=false; });
     el.addEventListener(evt||'input',()=>{ if(!pushed){ pushHistory(); pushed=true; } fn(el); redraw(); }); };
   bind('f-name',el=>{ f.name=el.value; if(f.type==='radio') lastRadioGroup=f.name; });
@@ -234,9 +239,10 @@ async function exportFields(x){
   if(af){ const fa=af.lookup(PDFName.of('Fields')); if(fa&&fa.asArray) fa.asArray().forEach(r=>{ const d=ctxP.lookup(r); if(d&&d.get&&!d.get(PDFName.of('CEK'))) keep.push(r); }); }
   (x.keptWidgetRefs||[]).forEach(w=>{ const wd=ctxP.lookup(w), par=wd&&wd.get&&wd.get(PDFName.of('Parent')), top=par||w, key=String(top); if(!seen.has(key)){ seen.add(key); keep.push(top); } });
   if(!list.length&&!af&&!keep.length) return;
-  const FM={Helvetica:['Helv',StandardFonts.Helvetica],Times:['TiRo',StandardFonts.TimesRoman],Courier:['Cour',StandardFonts.Courier]}, emb={};
-  for(const nm of new Set(['Helvetica',...list.map(e=>e.f.font||'Helvetica')])){ const m=FM[nm]||FM.Helvetica; emb[nm]={tag:m[0],font:await pdf.embedFont(m[1])}; }
-  const hv=emb.Helvetica.font, safe=s=>Array.from(String(s||'')).map(ch=>{ try{ hv.encodeText(ch); return ch; }catch(e){ return '?'; } }).join('');
+  const TAGS={Helvetica:["Helv","HeBo","HeOb","HeBO"],Times:["TiRo","TiBo","TiIt","TiBI"],Courier:["Cour","CoBo","CoOb","CoBO"]}, emb={}; // a font resource per family and bold / italic combination
+  const fkey=f=>{ const fam=TEXT_FACES[f.font]?f.font:"Helvetica"; return fam+"|"+((f.bold?1:0)+(f.italic?2:0)); };
+  for(const key of new Set(["Helvetica|0",...list.map(e=>fkey(e.f))])){ const [fam,ix]=key.split("|"); emb[key]={tag:TAGS[fam][+ix],font:await pdf.embedFont(StandardFonts[TEXT_FACES[fam].std[+ix]])}; }
+  const hv=emb["Helvetica|0"].font, safe=s=>Array.from(String(s||'')).map(ch=>{ try{ hv.encodeText(ch); return ch; }catch(e){ return '?'; } }).join('');
   const nameOf=s=>String(s||'Off').replace(/[^A-Za-z0-9_\-]/g,'_')||'On', used=new Set(), uniq=n=>{ let s=(n||'Field'), c=2; const b=s; while(used.has(s)) s=b+'_'+(c++); used.add(s); return s; };
   const col=h=>{ const c=hexArr(h); return rgb(c[0],c[1],c[2]); }, mul=(a,b)=>[a[0]*b[0]+a[1]*b[2],a[0]*b[1]+a[1]*b[3],a[2]*b[0]+a[3]*b[2],a[2]*b[1]+a[3]*b[3]];
   const top=[], groups=new Map(), K=0.5522847498;
@@ -261,7 +267,7 @@ async function exportFields(x){
         o.push(m.mode==='fill'?L.fill():L.stroke(),L.popGraphicsState()); }
       return o; };
     const stream=(ops,res)=>ctxP.register(ctxP.formXObject(ops,Object.assign({BBox:[0,0,bw,bh]},needM?{Matrix:Mx}:{},res?{Resources:res}:{})));
-    const fe=emb[f.font]||emb.Helvetica, fs=f.fontSize>0?f.fontSize:Math.min(12,bh*0.62), tc=hexArr(f.textColor);
+    const fe=emb[fkey(f)]||emb["Helvetica|0"], fs=f.fontSize>0?f.fontSize:Math.min(12,bh*0.62), tc=hexArr(f.textColor);
     const common={Type:'Annot',Subtype:'Widget',Rect:[x0,yb,x0+w,yb+h],F:{visible:4,hidden:2,noprint:0,hiddenprint:36}[f.visibility]!=null?{visible:4,hidden:2,noprint:0,hiddenprint:36}[f.visibility]:4,
       MK:Object.assign({R:orient},f.border?{BC:hexArr(f.borderColor)}:{},f.fill?{BG:hexArr(f.fillColor)}:{}),
       BS:Object.assign({W:t,S:{solid:'S',dashed:'D',beveled:'B',inset:'I',underline:'U'}[f.style]||'S'},dash?{D:[3,3]}:{}),CEK:'field'};
@@ -276,7 +282,9 @@ async function exportFields(x){
       if(f.checked) g.sel=on; if(f.defChecked) g.defSel=on; if(f.unison) g.unison=true; g.kids.push(ref);
     } else {
       const ops=boxOps(false);
-      ops.push(...L.drawText(fe.font.encodeText(safe(f.value)),{x:t+2,y:(bh-fs)/2+fs*0.22,size:fs,font:fe.tag,color:col(f.textColor),rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
+      { const sup=!!f.sup, sub=!sup&&!!f.sub, sz=fs*((sup||sub)?RT_SCALE:1), dy=sup?fs*RT_RAISE:sub?-fs*RT_LOWER:0, val=safe(f.value), tw=fe.font.widthOfTextAtSize(val,sz), x=t+2, y=(bh-fs)/2+fs*0.22+dy; // bold / italic come from the font; superscript / subscript shrink and shift; strikethrough is a line
+        ops.push(...L.drawText(fe.font.encodeText(val),{x,y,size:sz,font:fe.tag,color:col(f.textColor),rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
+        if(f.strike&&val) ops.push(...L.drawLine({start:{x,y:y+sz*0.3},end:{x:x+tw,y:y+sz*0.3},thickness:Math.max(0.5,sz*0.07),color:col(f.textColor)})); }
       const Ff=flags|131072|(f.allowCustom?262144:0)|(f.sort?524288:0)|(f.commit?67108864:0);
       const ref=addAnnot(page,Object.assign({},common,{FT:'Ch',Ff,AP:{N:stream(ops,{Font:{[fe.tag]:fe.font.ref}})}}),tf(Object.assign({T:uniq(f.name)},Object.assign(f.value?{V:f.value}:{},f.defValue?{DV:f.defValue}:{}))));
       ctxP.lookup(ref).set(PDFName.of('Opt'),ctxP.obj((f.items||[]).map(s=>PDFHexString.fromText(String(s)))));

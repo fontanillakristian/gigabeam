@@ -17,7 +17,7 @@ function renderProps(){
     html+=`<label>Font color<input type="color" id="p-textcolor" value="${obj.textColor||obj.color}"></label>`;
     html+=`<label>Font size<input type="number" id="p-size" min="6" max="200" value="${obj.size}"></label>`;
     html+=`<label>Font<select id="p-font">${Object.keys(TEXT_FACES).map(k=>`<option value="${k}"${(obj.fontName||'Helvetica')===k?' selected':''}>${TEXT_FACES[k].label}</option>`).join('')}</select></label>`;
-    html+=`<div style="display:flex;gap:18px;margin-top:8px"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="p-bold" ${obj.bold?'checked':''} style="width:auto;margin:0"><b>Bold</b></label><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="p-italic" ${obj.italic?'checked':''} style="width:auto;margin:0"><i>Italic</i></label></div>`;
+    html+=fmtRowHTML(obj,"fmt-text","Whole box. Select text while typing to format just that part.");
     if(obj.boxW) html+=`<label>Justification<select id="p-align">
       <option value="left"${(!obj.align||obj.align==='left')?' selected':''}>Left</option>
       <option value="center"${obj.align==='center'?' selected':''}>Center</option>
@@ -32,6 +32,7 @@ function renderProps(){
     html+=`<div class="sub" style="margin:-2px 0 6px">Empty shows the measured value. Tip: double-click the label on the page. <b>{value}</b> inserts the reading.</div>`;
     if(obj.label!=null) html+=`<button id="p-mlabel-reset" style="width:100%;margin-bottom:6px">Use measured value</button>`;
     html+=`<label>Decimal places<input type="number" id="p-mdec" min="0" max="6" value="${obj.decimals!=null?obj.decimals:2}"></label>`;
+    html+=fmtRowHTML(obj,"fmt-meas");
     html+=`<label>Font size<input type="number" id="p-size" min="6" max="72" value="${obj.fontSize||11}"></label>`;
     html+=`<label>Font color<input type="color" id="p-textcolor" value="${obj.textColor||obj.color}"></label>`;
   }
@@ -52,7 +53,7 @@ function renderProps(){
   html+=`<button id="p-setdef" style="margin-top:8px;width:100%">Set as default</button>`;
   html+=`<button id="p-del" class="primary" style="margin-top:8px;width:100%">Delete</button>`;
   propsBody.innerHTML=html;
-  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-font','p-bold','p-italic','p-align','p-border','p-bg','p-bgcolor']]]);
+  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-font','fmt-text','fmt-meas','p-align','p-border','p-bg','p-bgcolor']]]);
   const redraw=()=>{ buildSvg(pg); if(isText) buildTextNodes(pg); };
   const wire=(id,fn,evt='input')=>{ const el=$(id); if(!el) return; let pushed=false;
     el.addEventListener('focus',()=>pushed=false);
@@ -67,7 +68,8 @@ function renderProps(){
   wire('p-size', v=>{ const nn=parseFloat(v); if(nn>0){ if(isMeasure) obj.fontSize=nn; else obj.size=nn; } });
   wire('p-align', v=>obj.align=v, 'change');
   wire('p-font', v=>obj.fontName=v, 'change');
-  { const fb=$('p-bold'), fi=$('p-italic'); if(fb) fb.addEventListener('change',()=>{ pushHistory(); obj.bold=fb.checked; redraw(); }); if(fi) fi.addEventListener('change',()=>{ pushHistory(); obj.italic=fi.checked; redraw(); }); }
+  if($("fmt-text")) bindFmtRow("fmt-text",obj,redraw);
+  if($("fmt-meas")) bindFmtRow("fmt-meas",obj,redraw);
   wire('p-border', v=>{ const nn=parseFloat(v); obj.borderW=nn>0?nn:0; });
   wire('p-w', v=>obj.w=parseFloat(v)||obj.w);
   wire('p-lt', v=>{ obj.dash=v; const s=$('p-ltscale'); if(s) s.disabled=(v==='solid'); }, 'change');
@@ -146,18 +148,18 @@ document.addEventListener('keydown',e=>{
   if(k==='escape'){
     if(document.querySelector('.modal-ovl')) return; // dialogs close themselves
     if(pickState){ cancelPick(); e.preventDefault(); return; }
-    if(active&&active.blur&&(tag==='TEXTAREA'||tag==='INPUT'||tag==='SELECT')) active.blur();
+    if(active&&active.blur&&isTyping(active)) active.blur();
     if(tool!=='select'||pendingPoints.length||isDragging){ isDragging=false; setTool('select'); e.preventDefault(); return; } // cancel the current tool
     if(selected) setSelected(null);
     return;
   }
   if(k==='delete'||k==='backspace'){
     if(tag==='INPUT'||tag==='SELECT') return; // let those fields edit normally
-    if(tag==='TEXTAREA') return; // typing inside a text box: Backspace / Delete only edit its text, never remove the box (an empty form blank is meant to stay). Remove a box with its x button, or press Esc and then Delete.
+    if(active&&active.isContentEditable) return; // typing inside a text box: Backspace / Delete only edit its text, never remove the box (an empty form blank is meant to stay). Remove a box with its x button, or press Esc and then Delete.
     if(selected){ deleteSelected(); e.preventDefault(); }
     return;
   }
-  if(tag==='TEXTAREA'||tag==='INPUT'||tag==='SELECT') return;
+  if(isTyping(active)) return;
   if(!(e.ctrlKey||e.metaKey)) return;
   if(k==='c' && selected && selected.arrName==='texts'){ const o=selObj(); if(o){ clipboard=clone(o); pasteBtn.disabled=false; e.preventDefault(); } }
   else if(k==='v'){ pasteClipboard(); e.preventDefault(); }
@@ -189,3 +191,15 @@ async function setZoom(s){
 }
 zoomInBtn.onclick=()=>setZoom(scale+0.25);
 zoomOutBtn.onclick=()=>setZoom(scale-0.25);
+
+// ---- text style toggles (bold, italic, strikethrough, superscript, subscript) shared by text boxes, measurement labels and dropdown fields
+const FMT_BTNS=[['bold','<b>B</b>','Bold'],['italic','<i>I</i>','Italic'],['strike','<s>S</s>','Strikethrough'],['sup','x<sup>2</sup>','Superscript'],['sub','x<sub>2</sub>','Subscript']];
+function fmtRowHTML(o,id,hint){ // the first button carries the id (sectionProps files the row under its section by it)
+  return `<div class="fmt-wrap"><div class="fmt-row">${FMT_BTNS.map(([k,h,t],i)=>`<button type="button" class="fmt${o[k]?' on':''}" data-k="${k}" title="${t}"${i?'':` id="${id}"`}>${h}</button>`).join('')}</div>${hint?`<div class="sub" style="margin-top:4px">${hint}</div>`:''}</div>`;
+}
+function bindFmtRow(id,o,onChange){
+  const row=$(id).parentElement;
+  row.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    pushHistory(); const k=b.dataset.k; o[k]=!o[k]; if(o[k]&&k==='sup') o.sub=false; if(o[k]&&k==='sub') o.sup=false;
+    row.querySelectorAll('button').forEach(x=>x.classList.toggle('on',!!o[x.dataset.k])); onChange(); });
+}

@@ -6,7 +6,7 @@
 (function(){
   'use strict';
   const drawing=()=>tool!=='select'&&tool!=='pan';
-  const isControl=el=>!!el&&/^(TEXTAREA|INPUT|SELECT|BUTTON|OPTION)$/.test(el.tagName);
+  const isControl=el=>!!el&&(el.isContentEditable||/^(TEXTAREA|INPUT|SELECT|BUTTON|OPTION)$/.test(el.tagName));
   // is this element a markup / text box the user can grab? (svg children live inside .pg-svg)
   const onObject=el=>!!el&&((el.closest&&el.closest('.ann')&&!isControl(el))||(el.ownerSVGElement&&el.ownerSVGElement.classList&&el.ownerSVGElement.classList.contains('pg-svg')));
   const fire=(type,x,y,target)=>{

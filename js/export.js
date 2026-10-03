@@ -6,12 +6,17 @@ async function buildExportBytes(){
     const pdf=await loadPdf(originalBytes);
     const font=await pdf.embedFont(StandardFonts.Helvetica);
     const faceCache={Helvetica:font}; // the standard fonts text boxes use, embedded once each, on demand
-    const faceFor=async a=>{ const nm=textStdName(a); if(!faceCache[nm]) faceCache[nm]=await pdf.embedFont(StandardFonts[nm]); return faceCache[nm]; };
+    const faceFor=async nm=>{ if(!faceCache[nm]) faceCache[nm]=await pdf.embedFont(StandardFonts[nm]); return faceCache[nm]; };
     const pages=pdf.getPages();
     const ctxP=pdf.context;
     const hexArr=h=>{ h=h.replace('#',''); return [parseInt(h.substr(0,2),16)/255, parseInt(h.substr(2,2),16)/255, parseInt(h.substr(4,2),16)/255]; };
     const xy=(fx,fy,W,H)=>({x:fx*W,y:H-fy*H});
     const winSafe=s=>Array.from(String(s)).map(ch=>{ try{ font.encodeText(ch); return ch; }catch(e){ return '?'; } }).join(''); // the standard font only covers Western characters
+    // a measurement label centred at x = cx, with its own bold / italic / strikethrough / superscript / subscript
+    const labelOps=(text,m,cx,y,size,color)=>{ const st=mStyle(m), face=faceCache[rtStd({},st)]||font, sz=size*((st.sup||st.sub)?RT_SCALE:1), dy=st.sup?RT_RAISE*size:st.sub?-RT_LOWER*size:0, w=face.widthOfTextAtSize(text,sz);
+      const o=[...drawText(face.encodeText(text),{x:cx-w/2,y:y+dy,size:sz,font:"F1",color,rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)})];
+      if(st.st) o.push(...drawLine({start:{x:cx-w/2,y:y+dy+sz*0.3},end:{x:cx+w/2,y:y+dy+sz*0.3},thickness:Math.max(0.5,sz*0.07),color}));
+      return {ops:o,face,w}; };
     // Strip any annotations this app previously wrote (tagged CEK/CED) so re-saving
     // doesn't duplicate them — the in-app state (possibly edited/deleted) is authoritative.
     // Image stamps also own a private copy of the image bytes (/CEI) and an image XObject; drop those
@@ -77,11 +82,12 @@ async function buildExportBytes(){
         ops.push(...drawLine({start:tip,end:{x:tip.x+size*Math.cos(a2),y:tip.y+size*Math.sin(a2)},thickness:w,color:col})); };
       if(aEnd) arrow(lp2,lp1,aEnd);
       if(aStart) arrow(lp1,lp2,aStart);
+      let capFace=font;
       if(cap){
-        const cw=font.widthOfTextAtSize(cap.text,cap.size), tcol=rgb(cap.color[0],cap.color[1],cap.color[2]);
-        ops.push(...drawText(font.encodeText(cap.text),{x:(lp1.x+lp2.x)/2-cw/2,y:(lp1.y+lp2.y)/2+4,size:cap.size,font:'F1',color:tcol,rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
+        const tcol=rgb(cap.color[0],cap.color[1],cap.color[2]), lb=labelOps(cap.text,cap.m||{},(lp1.x+lp2.x)/2,(lp1.y+lp2.y)/2+4,cap.size,tcol);
+        ops.push(...lb.ops); capFace=lb.face;
       }
-      const xobjRef=ctxP.register(ctxP.formXObject(ops,{BBox:[0,0,bx2-bx1,by2-by1],Resources:cap?{Font:{F1:font.ref}}:undefined}));
+      const xobjRef=ctxP.register(ctxP.formXObject(ops,{BBox:[0,0,bx2-bx1,by2-by1],Resources:cap?{Font:{F1:capFace.ref}}:undefined}));
       addAnnot(page, Object.assign({ Type:'Annot', Subtype:'Line', Rect:[bx1,by1,bx2,by2],
         L:[p1.x,p1.y,p2.x,p2.y], C:color, BS:{W:w}, F:4, AP:{N:xobjRef},
         LE:[ aStart?'OpenArrow':'None', aEnd?'OpenArrow':'None' ] }, extra||{}), textFields);
@@ -103,9 +109,9 @@ async function buildExportBytes(){
     }
     // Area polygons carry an explicit appearance too: translucent fill, dashed outline, and
     // the measurement label at the centroid (so the area reading shows up in every viewer).
-    function polygonAnnot(page,pts,color,w,label,fontSize,textColor,extra,textFields,dash){
+    function polygonAnnot(page,pts,color,w,label,fontSize,textColor,extra,textFields,dash,mm){
       let cx=0,cy=0; pts.forEach(p=>{cx+=p.x;cy+=p.y;}); cx/=pts.length; cy/=pts.length;
-      const lw=font.widthOfTextAtSize(label,fontSize);
+      const lw=(faceCache[rtStd({},mStyle(mm||{}))]||font).widthOfTextAtSize(label,fontSize);
       const xs=pts.map(p=>p.x).concat([cx-lw/2,cx+lw/2]), ys=pts.map(p=>p.y).concat([cy-fontSize,cy+fontSize]);
       const pad=w+3;
       const bx1=Math.min(...xs)-pad, by1=Math.min(...ys)-pad, bx2=Math.max(...xs)+pad, by2=Math.max(...ys)+pad;
@@ -113,12 +119,12 @@ async function buildExportBytes(){
       const path=()=>{ const o=[moveTo(lp[0].x,lp[0].y)]; for(let i=1;i<lp.length;i++) o.push(lineTo(lp[i].x,lp[i].y)); o.push(closePath()); return o; };
       const ops=[pushGraphicsState(),setGraphicsState('GS1'),setFillingColor(col),...path(),fill(),popGraphicsState(),
                  pushGraphicsState(),setStrokingColor(col),setLineWidth(w),...(dash?[setDashPattern(dash,0)]:[]),...path(),stroke(),popGraphicsState()];
-      ops.push(...drawText(font.encodeText(label),{x:cx-bx1-lw/2,y:cy-by1-fontSize/3,size:fontSize,font:'F1',color:tcol,rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
-      const xobjRef=ctxP.register(ctxP.formXObject(ops,{BBox:[0,0,bx2-bx1,by2-by1],Resources:{Font:{F1:font.ref},ExtGState:{GS1:{Type:'ExtGState',ca:0.15,CA:1}}}}));
+      const lb=labelOps(label,mm||{},cx-bx1,cy-by1-fontSize/3,fontSize,tcol); ops.push(...lb.ops);
+      const xobjRef=ctxP.register(ctxP.formXObject(ops,{BBox:[0,0,bx2-bx1,by2-by1],Resources:{Font:{F1:lb.face.ref},ExtGState:{GS1:{Type:'ExtGState',ca:0.15,CA:1}}}}));
       const flat=[]; pts.forEach(p=>flat.push(p.x,p.y));
       addAnnot(page, Object.assign({ Type:'Annot', Subtype:'Polygon', Rect:[bx1,by1,bx2,by2], Vertices:flat, C:color, IC:color, BS:dash?{W:w,S:'D',D:dash}:{W:w}, F:4, AP:{N:xobjRef} }, extra||{}), textFields);
     }
-    for(const pn of Object.keys(annotations)) for(const a of (annotations[pn].texts||[])) await faceFor(a);
+    for(const pn of Object.keys(annotations)){ for(const a of (annotations[pn].texts||[])) for(const nm of rtFacesNeeded(a)) await faceFor(nm); for(const m of (annotations[pn].measurements||[])) await faceFor(rtStd({},mStyle(m))); }
     for(const pn of Object.keys(annotations)){
       const page=pages[parseInt(pn,10)-1]; if(!page) continue;
       const geo=pageGeom(page); curGeo=geo; const W=geo.W, H=geo.H; const d=annotations[pn]; // W,H = the page as displayed
@@ -176,19 +182,18 @@ async function buildExportBytes(){
         const col=hexArr(m.color), tcol=hexArr(m.textColor||m.color), fs=m.fontSize||11, label=winSafe(measureLabel(m));
         if(m.type==='length'){ const a=xy(m.points[0].x,m.points[0].y,W,H), b=xy(m.points[1].x,m.points[1].y,W,H);
           const as=m.arrowSize!=null?m.arrowSize:8; // an arrow on each end of the dimension line
-          lineAnnot(page,a,b,col,m.w,{dash:dashPattern(m),arrowStart:as,arrowEnd:as,caption:{text:label,size:fs,color:tcol}},{IT:'LineDimension',Cap:true,CP:'Inline',CEK:'measurement'},{Contents:label,CED:JSON.stringify(m)});
+          lineAnnot(page,a,b,col,m.w,{dash:dashPattern(m),arrowStart:as,arrowEnd:as,caption:{text:label,size:fs,color:tcol,m}},{IT:'LineDimension',Cap:true,CP:'Inline',CEK:'measurement'},{Contents:label,CED:JSON.stringify(m)});
         } else { const pts=m.points.map(pt=>xy(pt.x,pt.y,W,H));
-          polygonAnnot(page,pts,col,m.w,label,fs,tcol,{CEK:'measurement'},{Contents:label,CED:JSON.stringify(m)},dashPattern(m)); }
+          polygonAnnot(page,pts,col,m.w,label,fs,tcol,{CEK:'measurement'},{Contents:label,CED:JSON.stringify(m)},dashPattern(m),m); }
       });
       d.texts.forEach(a=>{
-        const tf=faceCache[textStdName(a)]||font; // this text box's own font (family, bold, italic)
+        const faceOf=nm=>faceCache[nm]||font, clean=s=>winSafe(cleanText(s)); // each piece of text uses its own font (family, bold, italic)
         const lineCol=hexArr(a.color), txtCol=hexArr(a.textColor||a.color), pos=xy(a.fx,a.fy,W,H), al=effAlign(a,W,H); // pos = top-left of the box
         const bw=a.borderW>0?a.borderW:0, pad=2+bw;
         const lrgb=rgb(lineCol[0],lineCol[1],lineCol[2]), trgb=rgb(txtCol[0],txtCol[1],txtCol[2]);
-        const rawLines=lineSplit(cleanText(a.text));
         let boxWpt,boxHpt;
         if(a.boxW){ boxWpt=a.boxW*W; boxHpt=a.boxH*H; }
-        else { const maxLW=Math.max(10,...rawLines.map(l=>tf.widthOfTextAtSize(l,a.size))); boxWpt=maxLW+8+2*bw; boxHpt=rawLines.length*a.size*1.2+8+2*bw; }
+        else { const L0=rtLayout(a,1e9,faceOf,clean), maxLW=Math.max(10,...L0.map(l=>l.w)); boxWpt=maxLW+8+2*bw; boxHpt=L0.length*a.size*1.2+8+2*bw; }
         const llx=pos.x, ury=pos.y, urx=pos.x+boxWpt, lly=pos.y-boxHpt;
         // A callout's pointer line is folded into this SAME FreeText annotation (via a
         // custom-drawn leader + native /CL) rather than a second Line annotation, so a
@@ -207,10 +212,7 @@ async function buildExportBytes(){
           ox2=Math.max(ox2,tipPage.x,kneePage.x); oy2=Math.max(oy2,tipPage.y,kneePage.y);
         }
         const boxOffX=llx-ox1, boxOffY=lly-oy1;
-        let lines=[];
-        rawLines.forEach(line=>{ if(line===''){ lines.push(''); return; }
-          const wrapped=breakTextIntoLines(line,[' '],boxWpt-2*pad,t=>tf.widthOfTextAtSize(t,a.size));
-          lines.push(...(wrapped.length?wrapped:[''])); });
+        const lines=rtLayout(a,boxWpt-2*pad,faceOf,clean), fkeys={}, fk=nm=>fkeys[nm]||(fkeys[nm]='F'+(Object.keys(fkeys).length+1));
         let ops=[];
         if(a.bg){ const bgCol=hexArr(a.bgColor||'#ffffff');
           ops.push(setFillingColor(rgb(bgCol[0],bgCol[1],bgCol[2])), rectangle(boxOffX,boxOffY,boxWpt,boxHpt), fill()); }
@@ -225,12 +227,15 @@ async function buildExportBytes(){
             ops.push(...drawLine({start:tipL,end:{x:tipL.x+a.arrowSize*Math.cos(a2),y:tipL.y+a.arrowSize*Math.sin(a2)},thickness:lt,color:lrgb})); }
         }
         lines.forEach((line,i)=>{
-          const lw=tf.widthOfTextAtSize(line,a.size);
+          const lw=line.w;
           let lx=boxOffX+pad; if(al==='center') lx=boxOffX+Math.max(pad,(boxWpt-lw)/2); else if(al==='right') lx=boxOffX+Math.max(pad,boxWpt-lw-pad);
           const ly=boxOffY+boxHpt-a.size-i*a.size*1.2-pad;
-          ops.push(...drawText(tf.encodeText(line),{x:lx,y:ly,size:a.size,font:'F1',color:trgb,rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
+          line.toks.forEach(t=>{
+            if(!t.sp) ops.push(...drawText(faceOf(t.std).encodeText(t.s),{x:lx,y:ly+t.dy,size:t.size,font:fk(t.std),color:trgb,rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
+            if(t.st.st) ops.push(...drawLine({start:{x:lx,y:ly+t.dy+t.size*0.3},end:{x:lx+t.w,y:ly+t.dy+t.size*0.3},thickness:Math.max(0.5,t.size*0.07),color:trgb})); // strikethrough
+            lx+=t.w; });
         });
-        const xobj=ctxP.formXObject(ops,{BBox:[0,0,ox2-ox1,oy2-oy1],Resources:{Font:{F1:tf.ref}}});
+        const xobj=ctxP.formXObject(ops,{BBox:[0,0,ox2-ox1,oy2-oy1],Resources:{Font:Object.fromEntries(Object.entries(fkeys).map(([nm,k])=>[k,faceOf(nm).ref]))}});
         const xobjRef=ctxP.register(xobj);
         const qVal=al==='center'?1:al==='right'?2:0;
         const dictObj={ Type:'Annot', Subtype:'FreeText', Rect:[ox1,oy1,ox2,oy2], Q:qVal, BS:{W:bw}, F:4, AP:{N:xobjRef}, CEK:'text' };

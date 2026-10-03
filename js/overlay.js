@@ -112,25 +112,27 @@ function buildSvg(n,previewNode){
     const fs=(m.fontSize||11)*scale, tc=m.textColor||m.color;
     const label=svgEl('text',{'font-size':fs,'font-family':'sans-serif','font-weight':'600','text-anchor':'middle',fill:tc});
     label.textContent=measureLabel(m);
+    const mst=mStyle(m), lblDy=mst.sup?fs*RT_RAISE:mst.sub?-fs*RT_LOWER:0; // bold / italic / strikethrough / superscript / subscript for the whole label
+    if(mst.sup||mst.sub) label.setAttribute('font-size',fs*RT_SCALE); if(mst.b) label.setAttribute('font-weight','800'); if(mst.i) label.setAttribute('font-style','italic'); if(mst.st) label.setAttribute('text-decoration','line-through');
     if(m.type==='length'){
       const [a,b]=m.points; const ax=a.x*W,ay=a.y*H,bx=b.x*W,by=b.y*H;
       const as=m.arrowSize!=null?m.arrowSize:8;
       { const ln=svgEl('line',{x1:ax,y1:ay,x2:bx,y2:by,stroke:m.color,'stroke-width':m.w}); applyDash(ln,m); svg.appendChild(ln); }
       if(as>0){ svg.appendChild(arrowHead(bx,by,ax,ay,as,m.color)); svg.appendChild(arrowHead(ax,ay,bx,by,as,m.color)); } // an arrow on each end
-      label.setAttribute('x',(ax+bx)/2); label.setAttribute('y',(ay+by)/2-6);
+      label.setAttribute('x',(ax+bx)/2); label.setAttribute('y',(ay+by)/2-6-lblDy);
       hitLine(ax,ay,bx,by,m.w,'measurements',idx);
     } else {
       const pts=m.points.map(pt=>`${pt.x*W},${pt.y*H}`).join(' ');
       const poly=svgEl('polygon',{points:pts,stroke:m.color,'stroke-width':m.w,fill:m.color,'fill-opacity':0.12}); applyDash(poly,m);
       let cx=0,cy=0; m.points.forEach(pt=>{cx+=pt.x;cy+=pt.y;}); cx=cx/m.points.length*W; cy=cy/m.points.length*H;
-      label.setAttribute('x',cx); label.setAttribute('y',cy);
+      label.setAttribute('x',cx); label.setAttribute('y',cy-lblDy);
       wireEl(poly,'measurements',idx,'all'); svg.appendChild(poly);
     }
     wireEl(label,'measurements',idx,'all'); svg.appendChild(label);
     if(grab('measurements',idx)) label.addEventListener('dblclick',ev=>{ ev.stopPropagation(); editMeasureLabel(n,idx,label); }); // double-click the label to type your own text
   });
   d.texts.forEach((a,idx)=>{ if(!a.leader) return;
-    if(a.align==='auto'){ const ta=v.stage.querySelector(`.ann[data-idx="${idx}"] textarea`); if(ta) ta.style.textAlign=effAlign(a,W,H); } // text follows the leader side
+    if(a.align==='auto'){ const ta=v.stage.querySelector(`.ann[data-idx="${idx}"] .ta`); if(ta) ta.style.textAlign=effAlign(a,W,H); } // text follows the leader side
     const g=calloutGeom(a,W,H), lw=(a.borderW>0?a.borderW:1.2)*scale;
     if(a.arrowSize) svg.appendChild(arrowHead(g.knee.x,g.knee.y,g.tip.x,g.tip.y,a.arrowSize,a.color));
     else svg.appendChild(svgEl('circle',{cx:g.tip.x,cy:g.tip.y,r:3,fill:a.color}));
@@ -230,6 +232,7 @@ function syncTextSelectionUI(){
 
 // ---------- text boxes / callouts ----------
 function buildTextNodes(n){
+  hideFmtBar(); // (a bar belongs to the box being edited, which is about to be rebuilt)
   const v=pageViews[n-1]; if(!v) return;
   v.stage.querySelectorAll('.ann').forEach(x=>x.remove());
   pdr(n).texts.forEach((a,idx)=>renderTextNode(n,a,idx));
@@ -265,13 +268,20 @@ function renderTextNode(n,a,idx){
   node.style.background=a.bg?(a.bgColor||'#ffffff'):'transparent';
   if(bw){ node.style.boxShadow=`inset 0 0 0 ${bw}px ${a.color}`; node.style.padding=`${1+bw}px ${2+bw}px`; }
   if(a.boxW){ node.style.width=(a.boxW*W)+'px'; node.style.height=(a.boxH*H)+'px'; }
-  const ta=document.createElement('textarea'); ta.value=a.text; ta.style.color=tc; ta.style.fontSize=(a.size*scale)+'px'; ta.style.fontFamily=textFace(a).css; ta.style.fontWeight=a.bold?'700':'400'; ta.style.fontStyle=a.italic?'italic':'normal'; ta.style.textAlign=effAlign(a,W,H);
-  if(!a.boxW){ ta.rows=1; ta.style.width='auto'; }
-  ta.addEventListener('input',()=>{ markDirty(); a.text=ta.value; node.classList.toggle('blank',!ta.value); if(!a.boxW){ autoGrow(ta); if(a.leader) buildSvg(n); } });
+  const ta=document.createElement('div'); ta.className='ta'; ta.contentEditable='true'; ta.spellcheck=false; ta.setAttribute('role','textbox'); ta.setAttribute('aria-multiline','true');
+  ta.style.color=tc; ta.style.fontSize=(a.size*scale)+'px'; ta.style.fontFamily=textFace(a).css; ta.style.textAlign=effAlign(a,W,H); applyTextFlags(ta,a);
+  rtFill(ta,a);
+  Object.defineProperty(ta,'value',{get(){ return rtRead(ta).text; },set(s){ rtFill(ta,{text:String(s)}); }}); // (plain-text view of the editor)
+  const sync=()=>{ const r=rtRead(ta); a.text=r.text; if(r.runs) a.runs=r.runs; else delete a.runs; node.classList.toggle('blank',!a.text); };
+  ta.addEventListener('input',()=>{ markDirty(); sync(); if(!a.boxW){ autoGrow(ta); if(a.leader) buildSvg(n); } });
+  ta.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); document.execCommand('insertLineBreak'); } else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='u') e.preventDefault(); }); // a line break, not a new block; no underline (not supported)
+  ta.addEventListener('paste',e=>{ e.preventDefault(); const s=(e.clipboardData||window.clipboardData).getData('text/plain'); document.execCommand('insertText',false,s); }); // plain text only
   ta.addEventListener('mousedown',()=>{ drawPage=n; if(!isSel(n,'texts',idx)) selectTextNode(n,idx); });
+  ta.addEventListener('focus',()=>showFmtBar(node,ta,a,n,sync));
+  ta.addEventListener('blur',()=>setTimeout(()=>{ if(!node.contains(document.activeElement)) hideFmtBar(); },0));
   node.appendChild(ta); if(!a.boxW) requestAnimationFrame(()=>autoGrow(ta));
   node.addEventListener('mousedown',e=>{
-    if(e.target===ta||e.target.closest('.rs')||e.target.closest('.del')||e.target.closest('button')) return;
+    if(ta.contains(e.target)||e.target.closest('.rs')||e.target.closest('.del')||e.target.closest('button')||e.target.closest('.fmt-bar')) return;
     drawPage=n; e.preventDefault(); e.stopPropagation();
     const sx=e.clientX, sy=e.clientY, ox=parseFloat(node.style.left), oy=parseFloat(node.style.top), origLeader=a.leader?{...a.leader}:null;
     let moved=false, hist=false;
@@ -357,4 +367,66 @@ function startLeaderDrag(n,idx,e){
     buildSvg(n); }; // the leader re-attaches to the nearer side of the box on every move
   const up=()=>{ window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); swallowNextClick(); };
   window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up);
+}
+
+// ---- rich text editing in text boxes and callouts ----
+// The editor is a contenteditable box; its formatting (<b> <i> <strike> <sup> <sub>) is read back into the text object as `runs`.
+function applyTextFlags(el,a){ // whole-box flags
+  el.style.fontWeight=a.bold?'700':'400'; el.style.fontStyle=a.italic?'italic':'normal';
+  el.style.textDecoration=a.strike?'line-through':'none';
+}
+function rtFill(el,a){
+  el.textContent='';
+  let last='';
+  rtRuns(a).forEach(r=>{ const parts=String(r.t||'').split('\n');
+    parts.forEach((p,i)=>{ if(i>0) el.appendChild(document.createElement('br')); if(p) el.appendChild(baseWrap(wrapRun(document.createTextNode(p),r),a)); }); last=String(r.t||""); });
+  if(last.endsWith('\n')) el.appendChild(document.createElement('br')); // (a trailing line break needs a second one to show the empty line)
+}
+function wrapRun(node,r){ // nest the node in the elements for the run's flags
+  if(r.sup) node=wrapEl('sup',node); else if(r.sub) node=wrapEl('sub',node);
+  if(r.st) node=wrapEl('strike',node); if(r.i) node=wrapEl('i',node); if(r.b) node=wrapEl('b',node);
+  return node;
+}
+// the whole-box superscript / subscript: a wrapper that rtRead ignores (the flag lives on the text object, not in the runs)
+function baseWrap(node,a){ if(a.sup||a.sub){ const e=wrapEl(a.sup?"sup":"sub",node); e.className="base"; return e; } return node; }
+function wrapEl(tag,child){ const e=document.createElement(tag); e.appendChild(child); return e; }
+// read the editor back: {text, runs} (runs only when something is formatted)
+function rtRead(root){
+  const runs=[]; let any=false;
+  const push=(t,s)=>{ if(!t) return; const l=runs[runs.length-1];
+    if(l&&!!l.b===!!s.b&&!!l.i===!!s.i&&!!l.st===!!s.st&&!!l.sup===!!s.sup&&!!l.sub===!!s.sub) l.t+=t; else runs.push(Object.assign({t},s.b?{b:1}:{},s.i?{i:1}:{},s.st?{st:1}:{},s.sup?{sup:1}:{},s.sub?{sub:1}:{})); if(s.b||s.i||s.st||s.sup||s.sub) any=true; };
+  const walk=(node,s)=>{ node.childNodes.forEach(ch=>{
+    if(ch.nodeType===3){ push(ch.nodeValue.replace(/ /g,' '),s); return; }
+    if(ch.nodeType!==1) return;
+    const tag=ch.tagName; if(tag==='BR'){ push('\n',s); return; }
+    if(ch.classList&&ch.classList.contains('base')){ walk(ch,s); return; } // the whole-box superscript / subscript wrapper: not a run flag
+    const n=Object.assign({},s), st=ch.style||{};
+    if(tag==='B'||tag==='STRONG'||st.fontWeight==='bold'||+st.fontWeight>=600) n.b=1;
+    if(tag==='I'||tag==='EM'||st.fontStyle==='italic') n.i=1;
+    if(tag==='STRIKE'||tag==='S'||tag==='DEL'||/line-through/.test(st.textDecorationLine||st.textDecoration||'')) n.st=1;
+    if(tag==='SUP'||st.verticalAlign==='super'){ n.sup=1; delete n.sub; } else if(tag==='SUB'||st.verticalAlign==='sub'){ n.sub=1; delete n.sup; }
+    if((tag==='DIV'||tag==='P')&&runs.length&&!runs[runs.length-1].t.endsWith('\n')) push('\n',s); // a block that slipped in (e.g. from a drop) is a line break
+    walk(ch,n); }); };
+  walk(root,{});
+  let text=runs.map(r=>r.t).join('');
+  if(text.endsWith('\n')&&root.lastChild&&root.lastChild.nodeName==='BR'){ const l=runs[runs.length-1]; l.t=l.t.slice(0,-1); if(!l.t) runs.pop(); text=text.slice(0,-1); } // the editor's own placeholder break
+  return {text,runs:any?runs:null};
+}
+// the formatting bar shown above a text box while you type in it (acts on the selected text, like a word processor)
+let fmtBarEl=null, fmtBarSel=null;
+function hideFmtBar(){ if(fmtBarEl){ fmtBarEl.remove(); fmtBarEl=null; } if(fmtBarSel){ document.removeEventListener('selectionchange',fmtBarSel); fmtBarSel=null; } }
+function showFmtBar(node,ta,a,n,sync){
+  hideFmtBar(); const v=pageViews[n-1]; if(!v) return;
+  const bar=document.createElement('div'); bar.className='fmt-bar';
+  const defs=[['bold','<b>B</b>','Bold (Ctrl+B)'],['italic','<i>I</i>','Italic (Ctrl+I)'],['strikeThrough','<s>S</s>','Strikethrough'],['superscript','x<sup>2</sup>','Superscript'],['subscript','x<sub>2</sub>','Subscript']];
+  const refresh=()=>defs.forEach(([cmd],i)=>{ let on=false; try{ on=document.queryCommandState(cmd); }catch(e){} bar.children[i].classList.toggle('on',on); });
+  defs.forEach(([cmd,html,tip])=>{ const b=document.createElement('button'); b.type='button'; b.className='fmt'; b.dataset.cmd=cmd; b.title=tip; b.innerHTML=html;
+    b.addEventListener('mousedown',e=>{ e.preventDefault(); e.stopPropagation(); }); // keep the text selection
+    b.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); ta.focus(); pushHistory(); document.execCommand(cmd); sync(); refresh(); });
+    bar.appendChild(b); });
+  bar.addEventListener('mousedown',e=>{ e.preventDefault(); e.stopPropagation(); });
+  v.stage.appendChild(bar); bar.style.left=node.offsetLeft+'px'; bar.style.top=(node.offsetTop<34?node.offsetTop+node.offsetHeight+4:node.offsetTop-30)+'px'; // above the box (below it if there is no room)
+  try{ document.execCommand('styleWithCSS',false,false); }catch(e){} // semantic tags (<b>, <strike>, <sup>…) are what rtRead understands
+  fmtBarSel=()=>{ if(document.activeElement===ta) refresh(); }; document.addEventListener('selectionchange',fmtBarSel); refresh();
+  fmtBarEl=bar;
 }

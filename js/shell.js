@@ -127,7 +127,7 @@ cmdPop.addEventListener('click',e=>{ const mi=e.target.closest('.mi'); if(mi&&mi
 const KEYTOOL={v:'select',h:'pan',x:'textselect',t:'text',c:'callout',l:'line',r:'rect',e:'ellipse'};
 document.addEventListener('keydown',e=>{
   if(document.querySelector('.modal-ovl')) return;
-  const a=document.activeElement, tag=(a&&a.tagName)||'', typing=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT', k=e.key.toLowerCase();
+  const a=document.activeElement, tag=(a&&a.tagName)||'', typing=isTyping(a), k=e.key.toLowerCase();
   if(e.ctrlKey||e.metaKey){
     if(k==='o'){ e.preventDefault(); platform.open(); }
     else if(k==='s'){ e.preventDefault(); if(pdfDoc&&!downloadBtn.disabled){ if(e.shiftKey) saveActiveDocument({saveAs:true}); else downloadBtn.click(); } }

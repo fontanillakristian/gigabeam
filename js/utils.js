@@ -242,3 +242,33 @@ const TEXT_FACES={
 const textFace=a=>TEXT_FACES[a.fontName]||TEXT_FACES.Helvetica;
 const textStdName=a=>textFace(a).std[(a.bold?1:0)+(a.italic?2:0)];
 const textCssFont=(a,px)=>`${a.italic?'italic ':''}${a.bold?'bold ':''}${px}px ${textFace(a).css}`;
+
+// ---- rich text: bold, italic, strikethrough, superscript, subscript
+// A text box has whole-box flags (bold, italic, strike, sup, sub) and, once part of its text is formatted, `runs`: consecutive pieces
+// [{t, b, i, st, sup, sub}] whose flags add to the box's. `text` always holds the plain text (it is also what other viewers and Find see).
+const RT_SCALE=0.65;                                   // size of superscript / subscript text
+const RT_RAISE=0.30, RT_LOWER=0.12;                    // baseline shift, as a fraction of the box's font size
+const rtRuns=a=>(a.runs&&a.runs.length)?a.runs:[{t:a.text||''}];
+function rtStyle(a,r){ r=r||{}; const sup=!!(a.sup||r.sup); return {b:!!(a.bold||r.b),i:!!(a.italic||r.i),st:!!(a.strike||r.st),sup,sub:!sup&&!!(a.sub||r.sub)}; }
+const rtStd=(a,st)=>textFace(a).std[(st.b?1:0)+(st.i?2:0)];
+// Break a text object into lines of styled tokens for the PDF (the editor lays text out itself, in the browser).
+// faceOf(stdName) -> an embedded font; clean(str) -> str safe for the standard fonts.
+function rtLayout(a,maxW,faceOf,clean){
+  const toks=[];
+  rtRuns(a).forEach(r=>{ const st=rtStyle(a,r), std=rtStd(a,st), size=a.size*((st.sup||st.sub)?RT_SCALE:1), dy=st.sup?RT_RAISE*a.size:st.sub?-RT_LOWER*a.size:0;
+    String(r.t||'').split('\n').forEach((line,li)=>{ if(li>0) toks.push({nl:true});
+      (line.match(/\s+|\S+/g)||[]).forEach(s=>toks.push({s:clean?clean(s):s,sp:/^\s/.test(s),st,std,size,dy})); }); });
+  const lines=[{toks:[],w:0}], cur=()=>lines[lines.length-1];
+  toks.forEach(t=>{
+    if(t.nl){ lines.push({toks:[],w:0}); return; }
+    t.w=faceOf(t.std).widthOfTextAtSize(t.s,t.size);
+    if(t.sp){ if(cur().toks.length||!cur().wrapped){ cur().toks.push(t); cur().w+=t.w; } return; } // (a wrapped line doesn't start with a space)
+    if(cur().toks.length&&cur().w+t.w>maxW){ while(cur().toks.length&&cur().toks[cur().toks.length-1].sp) cur().w-=cur().toks.pop().w; lines.push({toks:[],w:0,wrapped:true}); }
+    cur().toks.push(t); cur().w+=t.w; });
+  lines.forEach(l=>{ while(l.toks.length&&l.toks[l.toks.length-1].sp) l.w-=l.toks.pop().w; });
+  return lines;
+}
+// every standard font a set of text objects needs
+function rtFacesNeeded(a){ return rtRuns(a).map(r=>rtStd(a,rtStyle(a,r))); }
+const mStyle=m=>rtStyle({bold:m.bold,italic:m.italic,strike:m.strike,sup:m.sup,sub:m.sub},{}); // a measurement's label has whole-label flags
+const isTyping=el=>!!el&&(el.isContentEditable||/^(TEXTAREA|INPUT|SELECT)$/.test(el.tagName)); // somewhere keys type text (not shortcuts)
