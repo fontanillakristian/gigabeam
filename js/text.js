@@ -60,8 +60,8 @@ async function pageTextIndex(n){
   return {text,segs};
 }
 // box (fractions of the page) of characters c0..c1 of one pdf.js text item
-function itemRect(it,vp1,c0,c1){
-  const [a,b,c,d,e,f]=it.transform, la=Math.hypot(a,b)||1, lc=Math.hypot(c,d)||la, ux=a/la, uy=b/la, vx=c/lc, vy=d/lc, len=it.str.length||1, x0=it.width*c0/len, x1=it.width*c1/len;
+function itemRect(it,vp1,c0,c1,off){ // off(k): x offset of character k along the item (default: all characters equally wide)
+  const [a,b,c,d,e,f]=it.transform, la=Math.hypot(a,b)||1, lc=Math.hypot(c,d)||la, ux=a/la, uy=b/la, vx=c/lc, vy=d/lc, len=it.str.length||1, x0=off?off(c0):it.width*c0/len, x1=off?off(c1):it.width*c1/len;
   const pts=[[x0,-0.22*lc],[x1,-0.22*lc],[x0,0.9*lc],[x1,0.9*lc]].map(([s,t])=>vp1.convertToViewportPoint(e+ux*s+vx*t,f+uy*s+vy*t));
   const xs=pts.map(p=>p[0]/vp1.width), ys=pts.map(p=>p[1]/vp1.height);
   return {x0:Math.min(...xs),y0:Math.min(...ys),x1:Math.max(...xs),y1:Math.max(...ys)};

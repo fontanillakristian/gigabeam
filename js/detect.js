@@ -17,10 +17,17 @@ async function detectTexts(n,vp){
   tc.items.forEach(it=>{
     const s=it.str||''; if(!s.trim()) return;
     let last=0; const re=/_{3,}/g; let m;
-    const part=(a,b)=>{ const t=s.slice(a,b); if(t.trim()){ const lead=t.length-t.trimStart().length, trail=t.length-t.trimEnd().length; labels.push(Object.assign({s:t.trim()},itemRect(it,vp,a+lead,b-trail))); } };
-    while((m=re.exec(s))){ part(last,m.index); blanks.push(itemRect(it,vp,m.index,m.index+m[0].length)); last=m.index+m[0].length; }
+    // A text item mixing words and underscores: underscores are about half an em wide, the other characters share the rest of the item's width
+    // (equal widths per character would put the blank in the wrong place)
+    let off=null; const nU=(s.match(/_/g)||[]).length;
+    if(nU&&nU<s.length){ const fs=Math.hypot(it.transform[0],it.transform[1])||1, uw=0.5*fs, ow=Math.max(0.05*fs,(it.width-nU*uw)/(s.length-nU));
+      off=k=>{ let x=0; for(let i=0;i<k&&i<s.length;i++) x+=s[i]==='_'?uw:ow; return x; }; }
+    const BOXCH='☐□❑▢';
+    const part=(a,b)=>{ const t=s.slice(a,b); if(t.trim()&&!/^[\s☐□❑▢]+$/.test(t)){ const lead=t.length-t.trimStart().length, trail=t.length-t.trimEnd().length; labels.push(Object.assign({s:t.trim()},itemRect(it,vp,a+lead,b-trail,off))); } };
+    while((m=re.exec(s))){ part(last,m.index); blanks.push(itemRect(it,vp,m.index,m.index+m[0].length,off)); last=m.index+m[0].length; }
     part(last,s.length);
-    [...s].forEach((ch,i)=>{ if(ch==='☐'||ch==='□'||ch==='❑'||ch==='▢') blanks.push(Object.assign({box:true},itemRect(it,vp,i,i+1))); }); // box characters
+    [...s].forEach((ch,i)=>{ if(BOXCH.includes(ch)){ const r=itemRect(it,vp,i,i+1,off), W=vp.width, H=vp.height, side=Math.min((r.x1-r.x0)*W,(r.y1-r.y0)*H)*0.9, cx=(r.x0+r.x1)/2, cy=(r.y0+r.y1)/2; // a square, centred on the glyph
+        blanks.push({box:true,x0:cx-side/2/W,x1:cx+side/2/W,y0:cy-side/2/H,y1:cy+side/2/H}); } }); // box characters
   });
   return {labels,blanks};
 }
@@ -32,7 +39,7 @@ async function detectVector(page,vp,W,H){
   let ctm=[1,0,0,1,0,0]; const stack=[]; let pend=[]; // pending subpaths of the current path: arrays of points, or {rect:[4 points]}
   const box=pts=>{ const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y); return {x0:Math.min(...xs),y0:Math.min(...ys),x1:Math.max(...xs),y1:Math.max(...ys)}; };
   const addBox=b=>{ const wp=(b.x1-b.x0)*W, hp=(b.y1-b.y0)*H;
-    if(hp<=3&&wp>=36) hsegs.push({x0:b.x0,x1:b.x1,y:(b.y0+b.y1)/2}); else if(wp>=5&&hp>=5) rects.push(b); };
+    if(hp<=3&&wp>=36) hsegs.push({x0:b.x0,x1:b.x1,y:(b.y0+b.y1)/2}); else if(wp<=3&&hp>=8) vsegs.push({x:(b.x0+b.x1)/2,y0:b.y0,y1:b.y1}); else if(wp>=5&&hp>=5) rects.push(b); };
   const axisRect=pts=>{ if(pts.length<4||pts.length>5) return null; const b=box(pts), tol=1.2;
     return pts.every(p=>(Math.abs(p.x-b.x0)*W<tol||Math.abs(p.x-b.x1)*W<tol)&&(Math.abs(p.y-b.y0)*H<tol||Math.abs(p.y-b.y1)*H<tol))?b:null; };
   const flush=paint=>{ if(paint) pend.forEach(sp=>{ paths++;
@@ -119,18 +126,21 @@ async function detectPage(n){
   blanks.filter(b=>b.box).forEach(b=>squares.push(b));
   blanks.filter(b=>!b.box).forEach(b=>hsegs.push({x0:b.x0,x1:b.x1,y:b.y0+(b.y1-b.y0)*0.85,from:'text'}));
   const overText=(b,frac)=>labels.some(l=>{ const i=dInter(b,l); return i>frac*dArea(l)||i>frac*dArea(b); });
-  const labelH=l=>(l.y1-l.y0)*H, nearLabel=(y)=>{ let best=null; labels.forEach(l=>{ if(Math.abs((l.y0+l.y1)/2-y)<ptY(12)&&(!best||labelH(l)<labelH(best))) best=l; }); return best; };
+  const labelH=l=>(l.y1-l.y0)*H;
+  // the label on the same row as a line: text whose bottom edge sits at (or just above) the line, left of it, nearest first
+  const rowLabel=s=>{ let best=null; labels.forEach(l=>{ if(Math.abs(l.y1-s.y)*H<6&&l.x0<s.x0+pt(2)&&(!best||l.x1>best.x1)) best=l; }); return best; };
   const out=[];
-  const push=(kind,b,label)=>{ if(b.x1-b.x0<=0||b.y1-b.y0<=0) return; if(out.some(o=>dIoU(o,b)>0.3)) return; out.push({id:++detectSeq,kind,x0:b.x0,y0:b.y0,x1:b.x1,y1:b.y1,label:label||''}); };
+  const push=(kind,b,label,fs)=>{ if(b.x1-b.x0<=0||b.y1-b.y0<=0) return; if(out.some(o=>dIoU(o,b)>0.3)) return; out.push({id:++detectSeq,kind,x0:b.x0,y0:b.y0,x1:b.x1,y1:b.y1,label:label||'',fs}); };
   // 1) small squares -> checkboxes, named from the words beside them
   squares.forEach(sq=>{ if(overText(sq,0.5)) return; push('checkbox',sq,labelBeside(sq,labels,W)); });
   // 2) empty rectangles (table cells, boxes) -> a text box filling them; a cell with a label on its left gets a box in the empty part
   rects.forEach(b=>{ const wp=(b.x1-b.x0)*W, hp=(b.y1-b.y0)*H; if(wp<40||hp<12||hp>72||wp>0.9*W) return;
     const inner={x0:b.x0+pt(2),y0:b.y0+ptY(2),x1:b.x1-pt(2),y1:b.y1-ptY(2)}, inside=labels.filter(l=>dInter(l,inner)>0.5*dArea(l));
     const inkIn=ink&&!inside.length?ink(inner):null; // a scan: printed words OCR didn't read still count
-    if(!inside.length&&!(inkIn&&inkIn.ratio>0.012)){ push('text',inner); return; }
+    if(!inside.length&&!(inkIn&&inkIn.ratio>0.012)){ push('text',inner,cellLabel(inner,labels,W,rects)); return; }
     const emptyNext=rects.some(r=>Math.abs(r.x0-b.x1)*W<2&&Math.min(r.y1,b.y1)-Math.max(r.y0,b.y0)>0.7*(b.y1-b.y0)&&(r.x1-r.x0)*W>=40&&!labels.some(l=>dInter(l,r)>0.5*dArea(l))&&!(ink&&ink(r).ratio>0.012));
     if(emptyNext) return; // a label cell of a table: the empty cell beside it is the blank
+    if(inside.length){ const lx0=Math.min(...inside.map(l=>l.x0)), lx1=Math.max(...inside.map(l=>l.x1)); if(Math.abs((lx0-inner.x0)-(inner.x1-lx1))<0.3*(inner.x1-inner.x0)) return; } // text centred in its cell: a column / section heading, not a label beside a blank
     const right=(inside.length?Math.max(...inside.map(l=>l.x1)):inkIn.right)+pt(4); if((inner.x1-right)*W>=50&&!inside.some(l=>l.x0>right)) push('text',{x0:right,y0:inner.y0,x1:inner.x1,y1:inner.y1},inside.map(l=>l.s).join(' ')); });
   // 3) blank lines (rules, underscores) -> a text box sitting on the line
   hsegs.sort((a,b)=>a.y-b.y||a.x0-b.x0);
@@ -138,11 +148,14 @@ async function detectPage(n){
   merged.forEach(s=>{ const wp=(s.x1-s.x0)*W; if(wp<36||wp>0.75*W) return;
     if(hsegs.some(h=>h.grid&&Math.abs(h.y-s.y)<ptY(2)&&Math.min(h.x1,s.x1)-Math.max(h.x0,s.x0)>0.5*(s.x1-s.x0))) return; // a table / box border, not a blank line
     const side=x=>vsegs.some(v=>Math.abs(v.x-x)<pt(3)&&v.y0<s.y+ptY(2)&&v.y1>s.y-ptY(2)); if(side(s.x0)&&side(s.x1)) return; // closed off at both ends: the bottom of a box
-    const near=nearLabel(s.y-ptY(6)), hp=Math.max(12,Math.min(20,near?labelH(near)*1.5:16));
+    const near=rowLabel(s);
+    if(!near&&wp>0.6*W) return; // a long rule with no label beside it: a page rule or underline, not a blank
+    if(!near&&labels.length>25&&!labels.some(l=>(s.y-l.y1)*H>-2&&(s.y-l.y1)*H<18&&Math.min(l.x1,s.x1)-Math.max(l.x0,s.x0)>0)) return; // a text page: a rule with no label beside or above it is a header / footer / underline, not a blank
+    const hp=Math.max(11,Math.min(18,near?labelH(near)*1.15:14)); // as tall as the text of its row, not taller (a 10pt form gets ~13pt boxes)
     const b={x0:s.x0,y0:s.y-ptY(hp+1),x1:s.x1,y1:s.y-ptY(1)};
     if(b.y0<0||overText(b,0.3)||(ink&&ink(b).ratio>0.02)) return; // text already sits on this line: it's an underline or a table rule, not a blank
     if(rects.some(r=>{ const rw=(r.x1-r.x0)*W, rh=(r.y1-r.y0)*H; return rw>=40&&rh>=12&&rh<=72&&dInter(r,b)>0.6*dArea(b); })) return; // already covered by a box
-    push('text',b,labelLeft(b,labels,W)); });
+    push('text',b,labelLeft(b,labels,W,H),near?Math.max(7,Math.min(14,Math.round(labelH(near)/1.12*2)/2)):undefined); }); // the box's text matches the form's own text size
   return out;
 }
 // Table cells drawn as separate lines: between two neighbouring horizontal lines, the vertical lines that join them split the band
@@ -165,13 +178,13 @@ function labelBeside(sq,labels,W){ // words just right of a box (or just left), 
   const pick=right.length?right:row.filter(l=>l.x1<=sq.x0+1/W&&(sq.x0-l.x1)*W<30).sort((a,b)=>b.x1-a.x1);
   if(!pick.length) return '';
   const words=[pick[0]]; for(const l of pick.slice(1)){ if((l.x0-words[words.length-1].x1)*W>8||words.length>=5) break; words.push(l); }
-  return words.map(l=>l.s).join(' ').replace(/[:_]+$/,'').trim();
+  return shortLabel(words.map(l=>l.s).join(' '));
 }
-function labelLeft(b,labels,W){ // the words just left of a blank, on the same row ("Owner name:")
-  const cy=(b.y0+b.y1)/2, h=b.y1-b.y0, row=labels.filter(l=>Math.abs((l.y0+l.y1)/2-cy)<h&&l.x1<=b.x0+2/W).sort((p,q)=>q.x1-p.x1);
+function labelLeft(b,labels,W,H){ // the words just left of a blank, on the same row ("Owner name:")
+  const row=labels.filter(l=>Math.abs(l.y1-b.y1)*H<7&&l.x0<b.x0).sort((p,q)=>q.x1-p.x1); // same row: the label's bottom edge is within a few points of the blank's bottom
   if(!row.length||(b.x0-row[0].x1)*W>80) return '';
   const words=[row[0]]; for(const l of row.slice(1)){ if((words[words.length-1].x0-l.x1)*W>8||words.length>=5) break; words.push(l); }
-  return words.reverse().map(l=>l.s).join(' ').replace(/[:_]+$/,'').trim();
+  return shortLabel(words.reverse().map(l=>l.s).join(' '));
 }
 
 // ---- running it
@@ -238,7 +251,7 @@ function acceptSuggestions(page,ids){
         const used=new Set(allFields().map(f=>f.name)), base=(s.label||'Checkbox').replace(/[^\w \-]/g,'').trim().slice(0,30)||'Checkbox'; let name=base, i=2; while(used.has(name)) name=base+' '+(i++);
         d.fields.push(Object.assign(FIELD_BASE(),{type:'checkbox',x1:s.x0,y1:s.y0,x2:s.x1,y2:s.y1},clone(fieldDefaults.checkbox||{}),{name,tooltip:s.label||'',checkStyle:(fieldDefaults.checkbox&&fieldDefaults.checkbox.checkStyle)||'check',exportValue:'Yes',checked:false,defChecked:false}));
       }else{
-        const hpt=(s.y1-s.y0)*v.ptsH, size=Math.max(7,Math.min(14,Math.round(hpt*0.62)));
+        const hpt=(s.y1-s.y0)*v.ptsH, size=s.fs||Math.max(7,Math.min(14,Math.round(hpt*0.7)));
         const t={fx:s.x0,fy:s.y0,boxW:s.x1-s.x0,boxH:s.y1-s.y0,text:'',color:'#1a1a1a',size,align:'left',bg:false,bgColor:'#ffffff',leader:null,borderW:0};
         Object.assign(t,typeDefaults.text||{}); Object.assign(t,{fx:s.x0,fy:s.y0,boxW:s.x1-s.x0,boxH:s.y1-s.y0,text:'',leader:null,size}); d.texts.push(t);
       }
@@ -258,4 +271,16 @@ $('detect-clear').onclick=clearDetect;
   const rw=reloadWorkingDoc, lt=loadTab;
   reloadWorkingDoc=function(){ if(Object.keys(detectSug).length) clearDetect(); return rw.apply(this,arguments); };
   loadTab=function(){ if(Object.keys(detectSug).length) clearDetect(); return lt.apply(this,arguments); };
+}
+
+// a short, usable name from a label: at most six words / 40 characters, cut before the first sentence break
+function shortLabel(s){ s=String(s||'').replace(/[:_]+\s*$/,'').trim(); const cut=s.search(/[.;,(]\s/); if(cut>3) s=s.slice(0,cut); const w=s.split(/\s+/).slice(0,6).join(' '); return (w.length>40?w.slice(0,40).replace(/\s+\S*$/,''):w).replace(/[\s:,.;]+$/,''); }
+// the label of an empty table cell: the words in the cell just to its left, on the same row
+function cellLabel(b,labels,W,rects){
+  const nb=rects.find(r=>r!==b&&Math.abs(r.x1-b.x0)*W<4&&Math.min(r.y1,b.y1)-Math.max(r.y0,b.y0)>0.6*(b.y1-b.y0)); // the cell to the left holds the row's label
+  if(nb){ const ins=labels.filter(l=>{ const cx=(l.x0+l.x1)/2, cy=(l.y0+l.y1)/2; return cx>nb.x0&&cx<nb.x1&&cy>nb.y0&&cy<nb.y1; }).sort((p,q)=>p.y0-q.y0||p.x0-q.x0); if(ins.length) return shortLabel(ins.map(l=>l.s).join(' ')); }
+  const row=labels.filter(l=>{ const cy=(l.y0+l.y1)/2; return cy>b.y0&&cy<b.y1&&l.x1<=b.x0+3/W&&(b.x0-l.x1)*W<14; }).sort((p,q)=>q.x1-p.x1);
+  if(!row.length) return '';
+  const words=[row[0]]; for(const l of row.slice(1)){ if((words[words.length-1].x0-l.x1)*W>8||words.length>=5) break; words.push(l); }
+  return shortLabel(words.reverse().map(l=>l.s).join(' '));
 }

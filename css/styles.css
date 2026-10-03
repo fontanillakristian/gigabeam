@@ -382,7 +382,7 @@ body.textsel .pg-stage{cursor:text;}
 #bg-cancel:hover{background:rgba(229,72,77,.25);}
 
 /* empty text boxes (e.g. form blanks): a faint tint on screen only, so they can be found and filled in */
-.ann.empty{background-color:rgba(47,140,255,.07)!important;border-color:rgba(47,140,255,.35);}
+.ann.blank{background-color:rgba(47,140,255,.07)!important;border-color:rgba(47,140,255,.35);padding-top:0;padding-bottom:0;}
 
 /* Detect form fields: suggestions under review */
 .detect-layer{position:absolute;inset:0;pointer-events:none;z-index:4;}
