@@ -9,6 +9,7 @@ async function buildExportBytes(){
     const ctxP=pdf.context;
     const hexArr=h=>{ h=h.replace('#',''); return [parseInt(h.substr(0,2),16)/255, parseInt(h.substr(2,2),16)/255, parseInt(h.substr(4,2),16)/255]; };
     const xy=(fx,fy,W,H)=>({x:fx*W,y:H-fy*H});
+    const winSafe=s=>Array.from(String(s)).map(ch=>{ try{ font.encodeText(ch); return ch; }catch(e){ return '?'; } }).join(''); // the standard font only covers Western characters
     // Strip any annotations this app previously wrote (tagged CEK/CED) so re-saving
     // doesn't duplicate them — the in-app state (possibly edited/deleted) is authoritative.
     // Image stamps also own a private copy of the image bytes (/CEI) and an image XObject; drop those
@@ -169,7 +170,7 @@ async function buildExportBytes(){
           InkList:[flat], C:hexArr(p.color), CA:p.opacity, BS:{W:p.w}, F:4, AP:{N:iApRef}, CEK:'path' },{CED:JSON.stringify(p)});
       });
       d.measurements.forEach(m=>{
-        const col=hexArr(m.color), tcol=hexArr(m.textColor||m.color), fs=m.fontSize||11, label=m.value.toFixed(2)+' '+m.unit;
+        const col=hexArr(m.color), tcol=hexArr(m.textColor||m.color), fs=m.fontSize||11, label=winSafe(measureLabel(m));
         if(m.type==='length'){ const a=xy(m.points[0].x,m.points[0].y,W,H), b=xy(m.points[1].x,m.points[1].y,W,H);
           const as=m.arrowSize!=null?m.arrowSize:8; // an arrow on each end of the dimension line
           lineAnnot(page,a,b,col,m.w,{dash:dashPattern(m),arrowStart:as,arrowEnd:as,caption:{text:label,size:fs,color:tcol}},{IT:'LineDimension',Cap:true,CP:'Inline',CEK:'measurement'},{Contents:label,CED:JSON.stringify(m)});

@@ -353,3 +353,4 @@ body.drawing .pg-stage,body.drawing .pg-svg{touch-action:none;}   /* with a draw
 /* multi-select in the Markups list; other picked text boxes */
 .mk-row{user-select:none;-webkit-user-select:none;}
 .ann.msel{border-color:var(--c-accent);border-style:dashed;}
+.mlabel-edit{position:absolute;transform:translate(-50%,-50%);z-index:20;height:auto;padding:2px 6px;font-family:sans-serif;font-weight:600;text-align:center;background:#fff;border:1.5px solid var(--c-accent);border-radius:3px;outline:none;box-shadow:0 2px 8px rgba(0,0,0,.35);}

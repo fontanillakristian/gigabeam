@@ -26,6 +26,10 @@ function renderProps(){
     html+=`<label>${isMeasure?'Line color':'Color'}<input type="color" id="p-color" value="${obj.color}"></label>`;
   }
   if(isMeasure){
+    html+=`<label>Label<input id="p-mlabel" value="${esc(obj.label!=null?obj.label:'')}" placeholder="${esc(measuredValue(obj))}" title="Your own text. {value} inserts the measured value. Empty = the measured value."></label>`;
+    html+=`<div class="sub" style="margin:-2px 0 6px">Empty shows the measured value. Tip: double-click the label on the page. <b>{value}</b> inserts the reading.</div>`;
+    if(obj.label!=null) html+=`<button id="p-mlabel-reset" style="width:100%;margin-bottom:6px">Use measured value</button>`;
+    html+=`<label>Decimal places<input type="number" id="p-mdec" min="0" max="6" value="${obj.decimals!=null?obj.decimals:2}"></label>`;
     html+=`<label>Font size<input type="number" id="p-size" min="6" max="72" value="${obj.fontSize||11}"></label>`;
     html+=`<label>Font color<input type="color" id="p-textcolor" value="${obj.textColor||obj.color}"></label>`;
   }
@@ -46,7 +50,7 @@ function renderProps(){
   html+=`<button id="p-setdef" style="margin-top:8px;width:100%">Set as default</button>`;
   html+=`<button id="p-del" class="primary" style="margin-top:8px;width:100%">Delete</button>`;
   propsBody.innerHTML=html;
-  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-textcolor','p-size','p-align','p-border','p-bg','p-bgcolor']]]);
+  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-align','p-border','p-bg','p-bgcolor']]]);
   const redraw=()=>{ buildSvg(pg); if(isText) buildTextNodes(pg); };
   const wire=(id,fn,evt='input')=>{ const el=$(id); if(!el) return; let pushed=false;
     el.addEventListener('focus',()=>pushed=false);
@@ -55,6 +59,9 @@ function renderProps(){
   // border / arrow color never silently recolors the text (and vice-versa).
   wire('p-color', v=>{ if((isText||isMeasure)&&obj.textColor==null) obj.textColor=obj.color; obj.color=v; });
   wire('p-textcolor', v=>obj.textColor=v);
+  wire('p-mlabel', v=>{ obj.label=v===''?null:v; scheduleMarkups(); });
+  wire('p-mdec', v=>{ const nn=parseInt(v,10); obj.decimals=Math.max(0,Math.min(6,isNaN(nn)?2:nn)); scheduleMarkups(); });
+  if($('p-mlabel-reset')) $('p-mlabel-reset').onclick=()=>{ pushHistory(); obj.label=null; redraw(); renderProps(); scheduleMarkups(); };
   wire('p-size', v=>{ const nn=parseFloat(v); if(nn>0){ if(isMeasure) obj.fontSize=nn; else obj.size=nn; } });
   wire('p-align', v=>obj.align=v, 'change');
   wire('p-border', v=>{ const nn=parseFloat(v); obj.borderW=nn>0?nn:0; });

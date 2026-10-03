@@ -111,7 +111,7 @@ function buildSvg(n,previewNode){
   d.measurements.forEach((m,idx)=>{
     const fs=(m.fontSize||11)*scale, tc=m.textColor||m.color;
     const label=svgEl('text',{'font-size':fs,'font-family':'sans-serif','font-weight':'600','text-anchor':'middle',fill:tc});
-    label.textContent=m.value.toFixed(2)+' '+m.unit;
+    label.textContent=measureLabel(m);
     if(m.type==='length'){
       const [a,b]=m.points; const ax=a.x*W,ay=a.y*H,bx=b.x*W,by=b.y*H;
       const as=m.arrowSize!=null?m.arrowSize:8;
@@ -127,6 +127,7 @@ function buildSvg(n,previewNode){
       wireEl(poly,'measurements',idx,'all'); svg.appendChild(poly);
     }
     wireEl(label,'measurements',idx,'all'); svg.appendChild(label);
+    if(grab('measurements',idx)) label.addEventListener('dblclick',ev=>{ ev.stopPropagation(); editMeasureLabel(n,idx,label); }); // double-click the label to type your own text
   });
   d.texts.forEach((a,idx)=>{ if(!a.leader) return;
     if(a.align==='auto'){ const ta=v.stage.querySelector(`.ann[data-idx="${idx}"] textarea`); if(ta) ta.style.textAlign=effAlign(a,W,H); } // text follows the leader side
@@ -305,6 +306,22 @@ function startFeatureDrag(n,arrName,idx,e){
   const up=ev=>{ window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); swallowNextClick(); renderProps(); buildSvg(n);
     if(arrName==='fields'&&!histPushed) activateField(n,idx,ev); }; // a plain click (no drag) on a form field also fills it in
   window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up);
+}
+// Type a measurement's label in place: Enter / clicking away keeps it, Esc cancels, and an empty box goes back to the measured value.
+function editMeasureLabel(n,idx,labelEl){
+  const m=pd(n).measurements[idx], v=pageViews[n-1]; if(!m||!v) return;
+  const b=labelEl.getBBox(), inp=document.createElement('input'); inp.className='mlabel-edit';
+  inp.value=m.label!=null?m.label:measuredValue(m); inp.placeholder=measuredValue(m); inp.title='Your own text. {value} inserts the measured value; leave empty to show the measured value.';
+  inp.style.left=(b.x+b.width/2)+'px'; inp.style.top=(b.y+b.height/2)+'px'; inp.style.fontSize=((m.fontSize||11)*scale)+'px'; inp.style.color=m.textColor||m.color;
+  inp.style.width=Math.max(120,b.width+40)+'px';
+  let done=false;
+  const finish=keep=>{ if(done) return; done=true; const val=inp.value; inp.remove();
+    if(keep){ const next=(val.trim()===''||val===measuredValue(m))?null:val; if(next!==(m.label??null)){ pushHistory(); m.label=next; } }
+    buildSvg(n); renderProps(); scheduleMarkups(); };
+  inp.addEventListener('mousedown',e=>e.stopPropagation());
+  inp.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter'){ e.preventDefault(); finish(true); } else if(e.key==='Escape'){ e.preventDefault(); finish(false); } });
+  inp.addEventListener('blur',()=>finish(true));
+  v.stage.appendChild(inp); inp.focus(); inp.select();
 }
 // drag one corner of a polygon / polyline / cloud / area / length measurement (measurements are re-measured as they change)
 function startVertexDrag(n,arrName,idx,vi,e){

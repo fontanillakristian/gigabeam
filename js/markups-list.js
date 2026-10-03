@@ -6,7 +6,7 @@ function mkInfo(arr,o){
   if(arr==='texts') return {k:o.leader?'callout':'text',name:(o.text||'').trim().split('\n')[0]||(o.leader?'Callout':'Text')};
   if(arr==='shapes') return {k:o.type,name:MK_LABEL[o.type]};
   if(arr==='paths') return {k:'highlighter',name:'Highlighter'};
-  if(arr==='measurements') return {k:o.type,name:o.value.toFixed(2)+' '+o.unit};
+  if(arr==='measurements') return {k:o.type,name:measureLabel(o)};
   if(arr==='fields') return {k:o.type,name:o.type==='radio'?`${o.name} · ${o.exportValue}`:o.name};
   const sig=o.kind==='signature'; return {k:sig?'signature':'image',name:o.name||(sig?'Signature':'Image')};
 }

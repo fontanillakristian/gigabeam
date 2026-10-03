@@ -226,3 +226,7 @@ function dashPattern(o){
 // on-screen version: the same pattern at the current zoom
 function dashAttr(o){ const p=dashPattern(o); return p?p.map(v=>+(v*scale).toFixed(2)).join(','):null; }
 function applyDash(el,o){ const d=dashAttr(o); if(d){ el.setAttribute('stroke-dasharray',d); el.setAttribute('stroke-linecap','butt'); } }
+
+// ---- measurement labels: the measured value by default; the user can replace it with any text ({value} inserts the live reading)
+function measuredValue(m){ const dp=m.decimals!=null?m.decimals:2; return Number(m.value).toLocaleString('en-US',{minimumFractionDigits:dp,maximumFractionDigits:dp})+' '+m.unit; }
+function measureLabel(m){ return (m.label!=null&&m.label!=='')?String(m.label).replace(/\{value\}/g,measuredValue(m)):measuredValue(m); }
