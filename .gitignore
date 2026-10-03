@@ -1,0 +1,11 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# local test files and downloads
+*.pdf
+node_modules/

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A fast, private, in-browser PDF viewer and markup editor for drawings and plan sets: markups, measurements, forms, bookmarks, watermarks and more. Nothing is uploaded.">
+<meta name="theme-color" content="#26272b">
+<title>PDF Viewer & Editor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f8cff'/%3E%3Cpath d='M11 7h7l5 5v13H11z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<!-- Third-party libraries (pinned versions). To run fully offline, download these and point the src attributes at local copies. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- Signature fonts (used by the "type your signature" option) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Dancing+Script:wght@500&family=Great+Vibes&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<noscript>This editor needs JavaScript to run.</noscript>
+
+<!-- The icon sprite is built at start-up from assets/icons/*.svg (see js/boot.js). -->
+<!-- ===== Menu bar ===== -->
+<div id="menubar">
+  <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span>PDF Editor</div>
+  <button class="menu-item" data-menu="File">File</button><button class="menu-item" data-menu="Edit">Edit</button><button class="menu-item" data-menu="View">View</button>
+  <button class="menu-item" data-menu="Document">Document</button><button class="menu-item" data-menu="Markup">Markup</button><button class="menu-item" data-menu="Forms">Forms</button><button class="menu-item" data-menu="Measure">Measure</button>
+  <button class="menu-item" data-menu="Tools">Tools</button><button class="menu-item" data-menu="Help">Help</button>
+  <span class="spacer"></span>
+  <label class="search"><svg class="i sm"><use href="#i-search"/></svg><input id="cmd-search" placeholder="Search commands (Ctrl+K)" autocomplete="off"></label>
+</div>
+<div class="pop" id="menu-pop"></div>
+<div class="pop" id="cmd-pop"></div>
+
+<!-- ===== Document tabs ===== -->
+<div id="tab-bar"></div>
+
+<!-- ===== Main toolbar ===== -->
+<div id="toolbar">
+  <div class="grp">
+    <button class="tb" id="open-btn" data-tip="Open PDF (Ctrl+O)"><svg class="i"><use href="#i-open"/></svg></button>
+    <button class="tb" id="print-btn" data-tip="Print (Ctrl+P)" disabled><svg class="i"><use href="#i-print"/></svg></button>
+    <button class="tb" id="undo-btn" data-tip="Undo (Ctrl+Z)" disabled><svg class="i"><use href="#i-undo"/></svg></button>
+    <button class="tb" id="redo-btn" data-tip="Redo (Ctrl+Y)" disabled><svg class="i"><use href="#i-redo"/></svg></button>
+    <button class="tb" id="paste-btn" data-tip="Paste copied text (Ctrl+V)" disabled><svg class="i"><use href="#i-paste"/></svg></button>
+  </div>
+  <span class="sep"></span>
+  <div class="grp" id="tool-groups">
+    <button class="tb tool active" data-tool="select" data-tip="Select / Move (V)" disabled><svg class="i"><use href="#i-select"/></svg></button>
+    <button class="tb tool" data-tool="pan" data-tip="Pan (H)" disabled><svg class="i"><use href="#i-pan"/></svg></button>
+  </div>
+  <span class="sep"></span>
+  <div class="seg" id="mode-tabs">
+    <button class="on" data-mode="markup">Markup</button><button data-mode="forms">Forms</button><button data-mode="document">Document</button>
+  </div>
+  <span class="sep"></span>
+
+  <div class="modeset" data-mode="markup">
+    <button class="tb tool" data-tool="text" data-tip="Add Text (T)" disabled><svg class="i"><use href="#i-text"/></svg></button>
+    <button class="tb tool" data-tool="callout" data-tip="Callout (C)" disabled><svg class="i"><use href="#i-callout"/></svg></button>
+    <span class="sep"></span>
+    <button class="tb tool" data-tool="line" data-tip="Line (L)" disabled><svg class="i"><use href="#i-line"/></svg></button>
+    <button class="tb tool" data-tool="rect" data-tip="Rectangle (R)" disabled><svg class="i"><use href="#i-rect"/></svg></button>
+    <button class="tb tool" data-tool="ellipse" data-tip="Circle / Ellipse (E)" disabled><svg class="i"><use href="#i-ellipse"/></svg></button>
+    <button class="tb tool" data-tool="polygon" data-tip="Polygon: click each corner, then close it" disabled><svg class="i"><use href="#i-polygon"/></svg></button>
+    <button class="tb tool" data-tool="polyline" data-tip="Polyline: click each point, then finish" disabled><svg class="i"><use href="#i-polyline"/></svg></button>
+    <button class="tb tool" data-tool="cloud" data-tip="Revision Cloud: click each corner, then close it" disabled><svg class="i"><use href="#i-cloud"/></svg></button>
+    <button class="tb tool" data-tool="highlighter" data-tip="Highlighter (Shift+H)" disabled><svg class="i"><use href="#i-highlighter"/></svg></button>
+    <span class="sep"></span>
+    <button class="tb tool" data-tool="scale" data-tip="Calibrate Scale" disabled><svg class="i"><use href="#i-scale"/></svg></button>
+    <button class="tb tool" data-tool="measure-length" data-tip="Measure Length" disabled><svg class="i"><use href="#i-length"/></svg></button>
+    <button class="tb tool" data-tool="measure-area" data-tip="Measure Area" disabled><svg class="i"><use href="#i-area"/></svg></button>
+    <span class="sep"></span>
+    <button class="tb rib-btn" id="image-btn" data-tip="Insert a .jpg or .png" disabled><svg class="i"><use href="#i-image"/></svg></button>
+    <input type="file" id="image-input" accept="image/png,image/jpeg">
+    <button class="tb rib-btn" id="sign-btn" data-tip="Draw or type a signature" disabled><svg class="i"><use href="#i-sign"/></svg></button>
+  </div>
+
+  <div class="modeset" data-mode="forms" style="display:none">
+    <button class="tb tool wide-lbl" data-tool="checkbox" data-tip="Checkbox: click or drag on the page" disabled><svg class="i"><use href="#i-checkbox"/></svg>Checkbox</button>
+    <button class="tb tool wide-lbl" data-tool="radio" data-tip="Radio button: consecutive buttons join one group" disabled><svg class="i"><use href="#i-radio"/></svg>Radio</button>
+    <button class="tb tool wide-lbl" data-tool="dropdown" data-tip="Dropdown list: click or drag on the page" disabled><svg class="i"><use href="#i-dropdown"/></svg>Dropdown</button>
+    <span class="sep"></span>
+    <button class="tb rib-btn wide-lbl" id="reset-fields-btn" data-tip="Reset every form field to its default value" disabled><svg class="i"><use href="#i-undo"/></svg>Reset fields</button>
+    <span class="sep"></span>
+    <span class="chip">Click or drag on the page to place a field, then edit it in <b>Properties</b></span>
+  </div>
+
+  <div class="modeset" data-mode="document" style="display:none">
+    <button class="tb rib-btn" id="rotate-btn" data-tip="Rotate pages" disabled><svg class="i"><use href="#i-rotate"/></svg></button>
+    <button class="tb rib-btn" id="crop-btn" data-tip="Crop pages" disabled><svg class="i"><use href="#i-crop"/></svg></button>
+    <span class="sep"></span>
+    <button class="tb rib-btn" id="hf-btn" data-tip="Header & footer" disabled><svg class="i"><use href="#i-header"/></svg></button>
+    <button class="tb rib-btn" id="pn-btn" data-tip="Page numbers" disabled><svg class="i"><use href="#i-pagenum"/></svg></button>
+    <button class="tb rib-btn" id="wm-btn" data-tip="Watermark" disabled><svg class="i"><use href="#i-watermark"/></svg></button>
+    <button class="tb rib-btn" id="bm-add-btn" data-tip="Bookmark this page" disabled><svg class="i"><use href="#i-bookmark"/></svg></button>
+    <span class="sep"></span>
+    <button class="tb rib-btn" id="flatten-btn" data-tip="Flatten markups into the page" disabled><svg class="i"><use href="#i-flatten"/></svg></button>
+    <button class="tb tint" id="unflatten-btn" data-tip="Unflatten (pages flattened with “Allow unflatten later”)" disabled><svg class="i"><use href="#i-unflatten"/></svg></button>
+  </div>
+
+  <span class="spacer"></span>
+  <button class="btn-primary" id="download-btn" disabled><svg class="i sm"><use href="#i-save"/></svg><span id="save-label">Save PDF</span></button>
+</div>
+
+<!-- ===== Contextual strip ===== -->
+<div id="propbar">
+  <div class="field"><label>Color</label><span class="swatch" id="color-swatch" data-tip="Markup color"><i></i></span><input type="color" id="color-pick" value="#e0362b"></div>
+  <div class="field"><label>Line</label>
+    <select class="ctl" id="width-pick" title="Stroke width"><option value="1">1 px</option><option value="2" selected>2 px</option><option value="4">4 px</option><option value="8">8 px</option></select></div>
+  <div class="field"><label>Text</label><input class="ctl" type="number" id="size-pick" title="Text size" value="12" min="6" max="200"></div>
+  <span class="vsep"></span>
+  <div class="field"><label>Scale</label>
+    <select class="ctl" id="scale-select" title="Scale template (1 inch on a full-size sheet = N feet)" disabled>
+      <option value="">Scale…</option>
+      <option value="10">1" = 10'</option><option value="20">1" = 20'</option><option value="30">1" = 30'</option><option value="40">1" = 40'</option><option value="50">1" = 50'</option>
+      <option value="60">1" = 60'</option><option value="70">1" = 70'</option><option value="80">1" = 80'</option><option value="90">1" = 90'</option><option value="100">1" = 100'</option>
+    </select></div>
+  <span class="chip" id="scale-label">No scale set</span>
+  <span class="spacer"></span>
+  <span class="chip">Tool: <b id="tool-name">Select / Move</b></span>
+</div>
+
+<!-- ===== Workspace ===== -->
+<div id="work">
+  <div class="rail" id="rail-left">
+    <button class="on" id="pages-btn" data-tip="Pages"><svg class="i"><use href="#i-pages"/></svg></button>
+    <button id="bookmarks-btn" data-tip="Bookmarks"><svg class="i"><use href="#i-bookmark"/></svg></button>
+    <button id="markups-btn" data-tip="Markups"><svg class="i"><use href="#i-markups"/></svg></button>
+  </div>
+
+  <aside class="panel" id="left-panel">
+    <div class="splitter" id="left-split"></div>
+    <div class="panel-head"><h2 id="left-title">Pages</h2><button class="icon-btn" id="pages-close" data-tip="Collapse"><svg class="i sm"><use href="#i-left"/></svg></button></div>
+    <div class="panel-body" id="view-pages">
+      <div class="pg-tools">
+        <button id="add-blank-btn"><svg class="i sm"><use href="#i-plus"/></svg>Blank</button>
+        <button id="insert-pdf-btn"><svg class="i sm"><use href="#i-plus"/></svg>Insert PDF</button>
+        <input type="file" id="insert-pdf-input" accept="application/pdf">
+      </div>
+      <div id="sel-bar" style="display:none"><span id="sel-count">0 selected</span><button id="sel-all">All</button><button id="sel-clear">Clear</button><button id="sel-delete" class="danger"><svg class="i sm"><use href="#i-trash"/></svg>Delete</button></div>
+      <div id="pages-list"></div>
+    </div>
+    <div class="panel-body" id="view-bookmarks" style="display:none">
+      <div class="bm-tools"><button id="bm-add"><svg class="i sm"><use href="#i-plus"/></svg>Bookmark page</button><button id="bm-sub"><svg class="i sm"><use href="#i-plus"/></svg>Sub-bookmark</button></div>
+      <div id="bm-tree"></div>
+    </div>
+    <div class="panel-body" id="view-markups" style="display:none"><div id="mk-list"></div></div>
+  </aside>
+
+  <div id="canvas-wrap">
+    <main id="main">
+      <div class="empty" id="empty-msg">
+        <div class="badge-i"><svg class="i"><use href="#i-pages"/></svg></div>
+        <h2>Open a PDF to get started</h2>
+        <p>Drop a file anywhere, or choose Open. Open several PDFs at once and each gets its own tab.</p>
+        <button class="btn-primary" id="empty-open"><svg class="i sm"><use href="#i-open"/></svg>Open PDF</button>
+        <ul>
+          <li>Pick a tool, then click-drag on the page: Text, Callout, Line, Rectangle, Ellipse, Highlighter.</li>
+          <li>Polygon, Polyline, Cloud and Measure Area: click each corner, then click the ✓ (or double-click) to finish.</li>
+          <li>Select / Move lets you reposition anything and edit it in Properties.</li>
+          <li>Copy a text box in one tab and paste it into another.</li>
+        </ul>
+      </div>
+    </main>
+    <div id="load-card"><div class="lc-title" id="lc-title"></div><div class="lc-bar"><i id="lc-fill"></i></div><div class="lc-msg" id="lc-msg"></div></div>
+    <div id="pick-banner"><span id="pick-text"></span><button id="pick-cancel" type="button">Cancel</button></div>
+    <div class="float-nav">
+      <button id="prev-btn" data-tip="Previous page"><svg class="i sm"><use href="#i-up"/></svg></button>
+      <button id="next-btn" data-tip="Next page"><svg class="i sm"><use href="#i-chev"/></svg></button>
+    </div>
+  </div>
+
+  <aside class="panel" id="right-panel">
+    <div class="splitter" id="right-split"></div>
+    <div class="panel-head"><h2>Properties</h2><button class="icon-btn" id="props-close" data-tip="Collapse"><svg class="i sm"><use href="#i-right"/></svg></button></div>
+    <div class="panel-body" id="props-body"><p class="hint">No selection. Switch to the Select tool and click a feature.</p></div>
+  </aside>
+  <div class="rail" id="rail-right">
+    <button class="on" id="props-btn" data-tip="Properties"><svg class="i"><use href="#i-props"/></svg></button>
+  </div>
+</div>
+
+<!-- ===== Status bar ===== -->
+<div id="status">
+  <div class="grp">
+    <button class="icon-btn" id="prev-btn2" disabled><svg class="i sm"><use href="#i-left"/></svg></button>
+    <input class="ctl pgnum" id="page-num" value="" title="Go to page">
+    <span>of <span id="page-total">0</span></span>
+    <button class="icon-btn" id="next-btn2" disabled><svg class="i sm"><use href="#i-right"/></svg></button>
+    <button class="icon-btn" id="bm-toggle" data-tip="Bookmark this page" disabled><svg class="i sm"><use href="#i-bookmark"/></svg></button>
+  </div>
+  <span class="vsep"></span>
+  <span id="paper-size"></span>
+  <span class="spacer"></span>
+  <span id="bg-task"><span id="bg-msg"></span><span class="bg-bar"><i id="bg-fill"></i></span></span>
+  <span id="coords"></span>
+  <span class="vsep"></span>
+  <div class="grp">
+    <button class="icon-btn" id="fit-page" data-tip="Fit page" disabled><svg class="i sm"><use href="#i-fit"/></svg></button>
+    <button class="icon-btn" id="fit-width" data-tip="Fit width" disabled><svg class="i sm"><use href="#i-fitw"/></svg></button>
+    <button class="icon-btn" id="zoom-out" disabled><svg class="i sm"><use href="#i-minus"/></svg></button>
+    <input class="range zoom-slider" id="zoom-range" type="range" min="40" max="240" step="5" value="100" disabled>
+    <button class="icon-btn" id="zoom-in" disabled><svg class="i sm"><use href="#i-plus"/></svg></button>
+    <span id="zoom-label">100%</span>
+  </div>
+</div>
+<input type="file" id="file-input" accept="application/pdf" multiple>
+<div id="toast"><svg class="i sm" style="color:#4cc38a"><use href="#i-check"/></svg><span id="toast-msg"></span></div>
+
+<script src="js/icons-fallback.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>

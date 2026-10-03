@@ -1,0 +1,183 @@
+/* properties.js - The Properties panel, default styles, delete / paste, tool switching and zoom. */
+// ---------- Properties panel ----------
+function renderProps(){
+  propsBody.classList.remove('form'); syncTextSelectionUI();
+  if(!selected){ propsBody.innerHTML='<p class="hint">No selection. Switch to Select tool and click a feature.</p>'; return; }
+  const obj=selObj();
+  if(!obj){ selected=null; propsBody.innerHTML='<p class="hint">No selection.</p>'; return; }
+  const pg=selected.page;
+  if(extras().length){ renderMultiProps(); return; }
+  if(selected.arrName==='images'){ renderImageProps(obj,pg); return; }
+  if(selected.arrName==='fields'){ renderFieldProps(obj,pg); return; }
+  const isText=selected.arrName==='texts', isShape=selected.arrName==='shapes', isPath=selected.arrName==='paths', isMeasure=selected.arrName==='measurements';
+  const isLine=isShape&&obj.type==='line', isLength=isMeasure&&obj.type==='length';
+  const isFillableShape=isShape&&obj.type!=='line'&&obj.type!=='polyline';
+  let html='';
+  if(isText){
+    html+=`<label>Font color<input type="color" id="p-textcolor" value="${obj.textColor||obj.color}"></label>`;
+    html+=`<label>Font size<input type="number" id="p-size" min="6" max="200" value="${obj.size}"></label>`;
+    if(obj.boxW) html+=`<label>Justification<select id="p-align">
+      <option value="left"${(!obj.align||obj.align==='left')?' selected':''}>Left</option>
+      <option value="center"${obj.align==='center'?' selected':''}>Center</option>
+      <option value="right"${obj.align==='right'?' selected':''}>Right</option>${obj.leader?`<option value="auto"${obj.align==='auto'?' selected':''}>Toward leader</option>`:''}</select></label>`;
+    html+=`<label>Border thickness (0 = none)<input type="number" id="p-border" min="0" max="20" step="0.5" value="${obj.borderW||0}"></label>`;
+    html+=`<label>${obj.leader?'Border / arrow color':'Border color'}<input type="color" id="p-color" value="${obj.color}"></label>`;
+  } else {
+    html+=`<label>${isMeasure?'Line color':'Color'}<input type="color" id="p-color" value="${obj.color}"></label>`;
+  }
+  if(isMeasure){
+    html+=`<label>Font size<input type="number" id="p-size" min="6" max="72" value="${obj.fontSize||11}"></label>`;
+    html+=`<label>Font color<input type="color" id="p-textcolor" value="${obj.textColor||obj.color}"></label>`;
+  }
+  if(isShape||isPath||isMeasure) html+=`<label>Line thickness<input type="number" id="p-w" min="1" max="20" value="${obj.w}"></label>`;
+  if(isShape||isMeasure){ // line type (like AutoCAD): the pattern, and a scale that stretches / shrinks it
+    const lt=obj.dash||(obj.type==='area'?'dashed':'solid');
+    html+=`<label>Line type<select id="p-lt">${LINETYPES.map(([k,t])=>`<option value="${k}"${k===lt?' selected':''}>${t}</option>`).join('')}</select></label>`;
+    html+=`<label>Line type scale<input type="number" id="p-ltscale" min="0.1" max="50" step="0.1" value="${obj.ltScale>0?obj.ltScale:1}"${lt==='solid'?' disabled':''}></label>`; }
+  if(isShape&&obj.type==='cloud') html+=`<label>Bump size (% of page width)<input type="number" id="p-bump" min="0.3" max="8" step="0.1" value="${((obj.bump!=null?obj.bump:0.012)*100).toFixed(1)}"></label>`;
+  if(isLine||isLength||(isText&&obj.leader)) html+=`<label>Arrow size${isLength?' (both ends)':''}<input type="number" id="p-arrow" min="0" max="24" value="${obj.arrowSize!=null?obj.arrowSize:(isLength?8:0)}"></label>`;
+  if(isText&&obj.leader) html+=`<label>Leg length (% of page width)<input type="number" id="p-leglen" min="0" max="30" step="1" value="${Math.round((obj.legLength!=null?obj.legLength:0.03)*100)}"></label>`;
+  if(isPath) html+=`<label>Opacity<input type="range" id="p-op" min="0.1" max="1" step="0.05" value="${obj.opacity}"></label>`;
+  if(isText) html+=`<label style="display:flex;align-items:center;gap:6px;margin-top:12px;"><input type="checkbox" id="p-bg" ${obj.bg?'checked':''} style="width:auto;margin:0;"> Background mask</label>`;
+  if(isText && obj.bg) html+=`<label>Background color<input type="color" id="p-bgcolor" value="${obj.bgColor||'#ffffff'}"></label>`;
+  if(isFillableShape) html+=`<label style="display:flex;align-items:center;gap:6px;margin-top:12px;"><input type="checkbox" id="p-fillon" ${obj.fill?'checked':''} style="width:auto;margin:0;"> Fill</label>`;
+  if(isFillableShape && obj.fill) html+=`<label>Fill color<input type="color" id="p-fillcolor" value="${obj.fillColor||obj.color}"></label>`;
+  if(isText) html+=`<button id="p-copy" style="margin-top:14px;width:100%">Copy</button>`;
+  html+=`<button id="p-setdef" style="margin-top:8px;width:100%">Set as default</button>`;
+  html+=`<button id="p-del" class="primary" style="margin-top:8px;width:100%">Delete</button>`;
+  propsBody.innerHTML=html;
+  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-textcolor','p-size','p-align','p-border','p-bg','p-bgcolor']]]);
+  const redraw=()=>{ buildSvg(pg); if(isText) buildTextNodes(pg); };
+  const wire=(id,fn,evt='input')=>{ const el=$(id); if(!el) return; let pushed=false;
+    el.addEventListener('focus',()=>pushed=false);
+    el.addEventListener(evt,()=>{ if(!pushed){ pushHistory(); pushed=true; } fn(el.value); redraw(); }); };
+  // Editing the line color first pins the font color to its current value, so changing a
+  // border / arrow color never silently recolors the text (and vice-versa).
+  wire('p-color', v=>{ if((isText||isMeasure)&&obj.textColor==null) obj.textColor=obj.color; obj.color=v; });
+  wire('p-textcolor', v=>obj.textColor=v);
+  wire('p-size', v=>{ const nn=parseFloat(v); if(nn>0){ if(isMeasure) obj.fontSize=nn; else obj.size=nn; } });
+  wire('p-align', v=>obj.align=v, 'change');
+  wire('p-border', v=>{ const nn=parseFloat(v); obj.borderW=nn>0?nn:0; });
+  wire('p-w', v=>obj.w=parseFloat(v)||obj.w);
+  wire('p-lt', v=>{ obj.dash=v; const s=$('p-ltscale'); if(s) s.disabled=(v==='solid'); }, 'change');
+  wire('p-ltscale', v=>{ const nn=parseFloat(v); obj.ltScale=nn>0?nn:1; });
+  wire('p-arrow', v=>obj.arrowSize=parseFloat(v)||0);
+  wire('p-leglen', v=>obj.legLength=(parseFloat(v)||0)/100);
+  wire('p-op', v=>obj.opacity=parseFloat(v));
+  wire('p-bgcolor', v=>obj.bgColor=v);
+  wire('p-fillcolor', v=>obj.fillColor=v);
+  wire('p-bump', v=>{ const nn=parseFloat(v); obj.bump=(nn>0?nn:1.2)/100; });
+  const bgCb=$('p-bg'); if(bgCb) bgCb.addEventListener('change',()=>{ pushHistory(); obj.bg=bgCb.checked; if(obj.bg&&!obj.bgColor) obj.bgColor='#ffffff'; renderAll(); renderProps(); });
+  const fillCb=$('p-fillon'); if(fillCb) fillCb.addEventListener('change',()=>{ pushHistory(); obj.fill=fillCb.checked; if(obj.fill&&!obj.fillColor) obj.fillColor=obj.color; buildSvg(pg); renderProps(); });
+  if(isText) $('p-copy').onclick=()=>{ clipboard=clone(obj); pasteBtn.disabled=false; };
+  $('p-setdef').onclick=()=>setAsDefault(selected.arrName,obj);
+  $('p-del').onclick=()=>deleteSelected();
+}
+function kindOf(arrName,obj){
+  if(arrName==='texts') return obj.leader?'callout':'text';
+  if(arrName==='shapes') return obj.type;
+  if(arrName==='paths') return 'highlighter';
+  return null;
+}
+function setAsDefault(arrName,obj){
+  const kind=kindOf(arrName,obj); if(!kind) return;
+  colorPick.value=obj.color;
+  if(obj.w!=null) widthPick.value=obj.w;
+  if(obj.size!=null) sizePick.value=obj.size;
+  const extra={};
+  if(obj.arrowSize!=null) extra.arrowSize=obj.arrowSize;
+  if(obj.align!=null) extra.align=obj.align;
+  if(obj.bg!=null){ extra.bg=obj.bg; extra.bgColor=obj.bgColor; }
+  if(obj.fill!=null){ extra.fill=obj.fill; extra.fillColor=obj.fillColor; }
+  if(obj.opacity!=null) extra.opacity=obj.opacity;
+  if(obj.borderW!=null) extra.borderW=obj.borderW;
+  if(obj.dash!=null) extra.dash=obj.dash; if(obj.ltScale!=null) extra.ltScale=obj.ltScale;
+  if(obj.textColor!=null) extra.textColor=obj.textColor;
+  if(obj.legLength!=null) extra.legLength=obj.legLength;
+  typeDefaults[kind]=extra; syncSwatch(); toast('Default style saved for '+kind);
+}
+// Properties for several picked markups: the one thing they share is a colour, plus delete
+function multiItems(){ return selected?[{page:selected.page,arrName:selected.arrName,idx:selected.idx}].concat(extras()):[]; }
+function renderMultiProps(){
+  const items=multiItems(), objs=items.map(x=>(pdr(x.page)[x.arrName]||[])[x.idx]).filter(Boolean), colored=objs.filter(o=>o.color);
+  let html=`<p class="hint" style="margin-top:0"><b>${items.length} markups selected</b><br>Shift / Ctrl+click in the Markups list to add or remove one.</p>`;
+  if(colored.length) html+=`<label>Color (${colored.length} of them)<input type="color" id="pm-color" value="${colored[0].color}"></label>`;
+  html+=`<button id="pm-del" class="primary" style="margin-top:14px;width:100%">Delete ${items.length} markups</button>`;
+  propsBody.innerHTML=html;
+  const c=$('pm-color'); if(c){ let pushed=false; c.addEventListener('focus',()=>pushed=false);
+    c.addEventListener('input',()=>{ if(!pushed){ pushHistory(); pushed=true; } colored.forEach(o=>{ if(o.textColor==null&&(o.leader!==undefined||o.value!==undefined)) o.textColor=o.color; o.color=c.value; }); renderAll(); }); } // (text / measurement colour changes only the line, as in the single-item panel)
+  $('pm-del').onclick=()=>deleteSelected();
+}
+function deleteSelected(){
+  if(!selected) return;
+  const items=multiItems().filter(x=>{ const a=pd(x.page)[x.arrName]; return a&&a[x.idx]; }); if(!items.length) return;
+  pushHistory();
+  items.sort((p,q)=>p.page-q.page||(p.arrName<q.arrName?-1:p.arrName>q.arrName?1:0)||q.idx-p.idx); // highest index first so earlier ones keep their place
+  items.forEach(x=>pd(x.page)[x.arrName].splice(x.idx,1));
+  selected=null; renderAll(); renderProps();
+}
+
+function pasteClipboard(){
+  if(!clipboard||!pdfDoc) return;
+  pushHistory();
+  const t=clone(clipboard), n=currentPage;
+  t.fx=Math.min(0.92,(t.fx||0)+0.03); t.fy=Math.min(0.92,(t.fy||0)+0.03);
+  if(t.leader){ t.leader.x=Math.min(0.95,t.leader.x+0.03); t.leader.y=Math.min(0.95,t.leader.y+0.03); }
+  pd(n).texts.push(t);
+  selected={page:n,arrName:'texts',idx:pd(n).texts.length-1};
+  openProps(); renderAll(); renderProps();
+}
+pasteBtn.onclick=pasteClipboard;
+document.addEventListener('keydown',e=>{
+  const active=document.activeElement, tag=(active&&active.tagName)||'';
+  const k=e.key.toLowerCase();
+  if(k==='escape'){
+    if(document.querySelector('.modal-ovl')) return; // dialogs close themselves
+    if(pickState){ cancelPick(); e.preventDefault(); return; }
+    if(active&&active.blur&&(tag==='TEXTAREA'||tag==='INPUT'||tag==='SELECT')) active.blur();
+    if(tool!=='select'||pendingPoints.length||isDragging){ isDragging=false; setTool('select'); e.preventDefault(); return; } // cancel the current tool
+    if(selected) setSelected(null);
+    return;
+  }
+  if(k==='delete'||k==='backspace'){
+    if(tag==='INPUT'||tag==='SELECT') return; // let those fields edit normally
+    if(tag==='TEXTAREA'){
+      // inside a text box's own field: only remove the whole box via keyboard once
+      // it's empty, so Backspace still edits non-empty text as expected.
+      if(selected&&selected.arrName==='texts'&&active.value===''){ deleteSelected(); e.preventDefault(); }
+      return;
+    }
+    if(selected){ deleteSelected(); e.preventDefault(); }
+    return;
+  }
+  if(tag==='TEXTAREA'||tag==='INPUT'||tag==='SELECT') return;
+  if(!(e.ctrlKey||e.metaKey)) return;
+  if(k==='c' && selected && selected.arrName==='texts'){ const o=selObj(); if(o){ clipboard=clone(o); pasteBtn.disabled=false; e.preventDefault(); } }
+  else if(k==='v'){ pasteClipboard(); e.preventDefault(); }
+});
+
+function setTool(newTool){
+  if(pickState) cancelPick();
+  tool=newTool; clearPending(true); updateToolButtons();
+  selected=null; rebuildAllSvg(); renderProps(); // interactivity of existing shapes depends on the tool
+}
+function updateToolButtons(){
+  document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('active', b.dataset.tool===tool));
+  $('tool-name').textContent=TOOL_TITLES[tool]||(tool==='areapick'?'Select area':'');
+  document.body.classList.toggle('pan',tool==='pan');
+  document.body.classList.toggle('drawing',tool!=='select'&&tool!=='pan'); // (touch: fingers draw instead of scroll)
+}
+function setToolButtonsDisabled(v){ document.querySelectorAll('.tool,.rib-btn,#scale-select').forEach(b=>b.disabled=v); }
+setToolButtonsDisabled(true);
+undoBtn.onclick=doUndo; redoBtn.onclick=doRedo;
+prevBtn.onclick=()=>{ if(currentPage>1) goToPage(currentPage-1); };
+nextBtn.onclick=()=>{ if(currentPage<numPages) goToPage(currentPage+1); };
+async function setZoom(s){
+  const ns=Math.max(0.5,Math.min(3,s)); if(ns===scale||!pdfDoc) return;
+  scale=ns; syncZoomUI();
+  const anchor=captureScrollAnchor();
+  const ok=await layoutPages(); if(!ok) return;
+  renderAll(); renderProps(); restoreScrollAnchor(anchor);
+}
+zoomInBtn.onclick=()=>setZoom(scale+0.25);
+zoomOutBtn.onclick=()=>setZoom(scale-0.25);
