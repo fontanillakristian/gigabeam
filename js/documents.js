@@ -1,5 +1,5 @@
 /* documents.js - Opening files, importing saved markups, and the multi-tab document model. */
-openBtn.onclick=()=>fileInput.click();
+openBtn.onclick=()=>platform.open();
 // Reconstructs this app's own editable objects from any CEK/CED-tagged annotations
 // left by a previous save, so a PDF exported by this app can be re-opened and edited
 // again (rather than only being viewable/editable as generic markup elsewhere).
@@ -31,8 +31,8 @@ async function importAnnotations(buf,skipPages){ // skipPages: flattened pages. 
   return result;
 }
 
-fileInput.onchange=async e=>{
-  const files=Array.from(e.target.files||[]); if(!files.length) return;
+// Open a list of File objects as new tabs (from the picker, a drop, or the desktop app; files from disk carry their path).
+async function openFiles(files){
   // Open fast, show progress: pdf.js opens the file and page 1 is on screen first. The slow pdf-lib parse (needed only to
   // recover markups saved by THIS editor) is skipped for other files and otherwise runs afterwards, in the background.
   const added=[];
@@ -49,11 +49,11 @@ fileInput.onchange=async e=>{
       let scale0=1.25; // big sheets (A3 / ARCH) open fitted to the window width
       try{ const w=(await doc.getPage(1)).getViewport({scale:1}).width, avail=main.clientWidth-90; if(w*1.25>avail) scale0=Math.min(3,Math.max(0.5,avail/w)); }catch(err){}
       const tab={ layout:newLayout(), bookmarks:bm, flatPages:new Set(), name:file.name, pdfDoc:doc, originalBytes:buf, numPages:doc.numPages, currentPage:1,
-        scale:scale0, annotations:{}, scaleInfo:null, historyStack:[], redoStack:[], selected:null, deep };
+        scale:scale0, annotations:{}, scaleInfo:null, historyStack:[], redoStack:[], selected:null, deep, path:platform.pathOf(file) };
+      platform.noteOpened(tab.path);
       docs.push(tab); added.push(tab);
     }catch(err){ hideLoad(); await modalAlert('Could not open '+file.name+': '+err.message); }
   }
-  fileInput.value='';
   if(!added.length){ hideLoad(); return; }
   emptyMsg.style.display='none';
   ZOOM_CTRLS().forEach(b=>b.disabled=false);
@@ -65,7 +65,9 @@ fileInput.onchange=async e=>{
   for(let i=0;i<80&&document.visibilityState==='visible'&&!(pageViews[0]&&pageViews[0].rendered);i++) await new Promise(r=>setTimeout(r,50)); // (nothing paints in a background tab, so don't wait there)
   hideLoad();
   for(const t of added) if(t.deep) await deepImport(t);
-};
+}
+// the file picker (browsers) and drag-and-drop both land here
+fileInput.onchange=async e=>{ const files=Array.from(e.target.files||[]); if(files.length) await openFiles(files); fileInput.value=''; };
 
 function snapshotCurrent(){
   if(activeDoc<0||!docs[activeDoc]) return;
@@ -84,15 +86,21 @@ async function loadTab(idx){
   await renderPagePanel();
 }
 // Close a tab, asking first if it has unsaved changes.
+// Resolves true when the tab was closed, false when the user cancelled (or a save was cancelled / failed).
 async function requestCloseTab(i){
-  const t=docs[i]; if(!t) return;
+  const t=docs[i]; if(!t) return true;
   if(t.dirty){
     const c=await modalChoice(`<b>${esc(t.name)}</b> has changes that haven't been saved.<br>Do you want to save before closing?`,
       [{id:'save',label:'Save',primary:true},{id:'discard',label:"Don't save",danger:true},{id:'cancel',label:'Cancel'}]);
-    if(c===null||c==='cancel') return;
-    if(c==='save'){ if(i!==activeDoc) await loadTab(i); if(!(await saveActiveDocument())) return; } // a cancelled save keeps the tab open
+    if(c===null||c==='cancel') return false;
+    if(c==='save'){ if(i!==activeDoc) await loadTab(i); if(!(await saveActiveDocument())) return false; } // a cancelled save keeps the tab open
   }
-  closeTab(i);
+  closeTab(i); return true;
+}
+// The desktop window's close button: ask about each tab with unsaved changes, then really close. Any "Cancel" keeps the app open.
+async function requestCloseWindow(){
+  for(let i=docs.length-1;i>=0;i--) if(docs[i].dirty&&!(await requestCloseTab(i))) return;
+  platform.quit();
 }
 function closeTab(i){
   snapshotCurrent(); // keep the active tab's live state when a different tab is closed
@@ -114,6 +122,7 @@ function closeTab(i){
 }
 function renderTabBar(){
   tabBar.innerHTML='';
+  { const t=docs[activeDoc]; platform.setTitle(t?(t.dirty?'● ':'')+t.name+' - Gigabeam':'Gigabeam'); } // window title (desktop) / tab title (browser)
   docs.forEach((t,i)=>{
     const b=document.createElement('div'); b.className='tab'+(i===activeDoc?' active':'')+(t.dirty?' dirty':''); b.title=t.name+(t.dirty?' (unsaved changes)':'');
     b.innerHTML=(i===activeDoc||t.dirty?'<span class="dot"></span>':'')+'<span class="name"></span><button class="x" aria-label="Close tab"><svg class="i sm"><use href="#i-x"/></svg></button>';
@@ -123,5 +132,5 @@ function renderTabBar(){
     tabBar.appendChild(b);
   });
   const add=document.createElement('button'); add.className='tab-add'; add.title='Open PDF'; add.innerHTML='<svg class="i sm"><use href="#i-plus"/></svg>';
-  add.onclick=()=>fileInput.click(); tabBar.appendChild(add);
+  add.onclick=()=>platform.open(); tabBar.appendChild(add);
 }

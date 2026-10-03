@@ -18,7 +18,7 @@ Built for drawings and plan sets, but it works on any PDF.
 - **Undo / redo** covers everything: markups, form fields, page numbers, header & footer, watermark, bookmarks, and page operations (delete, insert, reorder, rotate, crop, flatten, unflatten).
 - Works on narrow windows too: the side panels float over the canvas instead of squeezing it.
 - **Touch and pen:** draw, drag and pinch-zoom with a finger or stylus.
-- **Unsaved-changes prompt:** closing a tab or the browser asks whether to save first (Save uses the Save As dialog in Chrome/Edge, otherwise it downloads).
+- **Unsaved-changes prompt:** closing a tab or the browser asks whether to save first (Save uses the Save As dialog in Chrome/Edge, otherwise it downloads). File > Save PDF as… (Ctrl+Shift+S) always asks where.
 - **Saving and page operations run in a background worker**, so the window stays responsive on big files.
 - Form fields keep a default value separate from the current value, with Reset buttons.
 
@@ -79,6 +79,7 @@ The app is plain JavaScript (no framework, no bundler). The files are ordinary s
 | File | What it does |
 | --- | --- |
 | `state.js` | constants, DOM references, shared state |
+| `platform.js` | the only file that knows if it runs in a browser or the desktop app: open / save dialogs, closing the window |
 | `utils.js` | page geometry (rotate / crop), image store, revision-cloud outline, undo / redo, simple modals |
 | `documents.js` | opening files, importing saved markups, tabs |
 | `pages.js` | page stack, lazy page rendering, thumbnails, page operations |

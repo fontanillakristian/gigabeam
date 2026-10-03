@@ -65,15 +65,16 @@ main.addEventListener('dragleave',e=>{ if(!main.contains(e.relatedTarget)) docum
 main.addEventListener('drop',e=>{
   document.body.classList.remove('dropping');
   const fs=Array.from(e.dataTransfer?e.dataTransfer.files:[]).filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name)); if(!fs.length) return;
-  e.preventDefault(); const dt=new DataTransfer(); fs.forEach(f=>dt.items.add(f)); fileInput.files=dt.files; fileInput.onchange({target:fileInput}); });
+  e.preventDefault(); openFiles(fs); });
 
 // ---- commands (drive both the menu bar and the search box)
 const needDoc=fn=>()=>{ if(pdfDoc) fn(); };
 const tl=id=>needDoc(()=>setTool(id));
 // [menu, label, shortcut, run, soon?]  ('-' label = divider)
 const COMMANDS=[
-  ['File','Open PDF…','Ctrl+O',()=>fileInput.click()],
+  ['File','Open PDF…','Ctrl+O',()=>platform.open()],
   ['File','Save PDF','Ctrl+S',needDoc(()=>{ if(!downloadBtn.disabled) downloadBtn.click(); })],
+  ['File','Save PDF as…','Ctrl+Shift+S',needDoc(()=>{ if(!downloadBtn.disabled) saveActiveDocument({saveAs:true}); })],
   ['File','Print…','Ctrl+P',needDoc(()=>{ if(!printBtn.disabled) printBtn.click(); })],
   ['File','-'],['File','Close tab','',needDoc(()=>requestCloseTab(activeDoc))],
   ['Edit','Undo','Ctrl+Z',needDoc(doUndo)],['Edit','Redo','Ctrl+Y',needDoc(doRedo)],['Edit','-'],
@@ -126,8 +127,8 @@ document.addEventListener('keydown',e=>{
   if(document.querySelector('.modal-ovl')) return;
   const a=document.activeElement, tag=(a&&a.tagName)||'', typing=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT', k=e.key.toLowerCase();
   if(e.ctrlKey||e.metaKey){
-    if(k==='o'){ e.preventDefault(); fileInput.click(); }
-    else if(k==='s'){ e.preventDefault(); if(!downloadBtn.disabled) downloadBtn.click(); }
+    if(k==='o'){ e.preventDefault(); platform.open(); }
+    else if(k==='s'){ e.preventDefault(); if(pdfDoc&&!downloadBtn.disabled){ if(e.shiftKey) saveActiveDocument({saveAs:true}); else downloadBtn.click(); } }
     else if(k==='p'){ e.preventDefault(); if(!printBtn.disabled) printBtn.click(); }
     else if(k==='k'){ e.preventDefault(); cmdIn.focus(); cmdIn.select(); }
     else if(!typing&&k==='z'&&!e.shiftKey){ e.preventDefault(); doUndo(); }
@@ -138,6 +139,5 @@ document.addEventListener('keydown',e=>{
   if(k==='h'&&e.shiftKey){ setTool('highlighter'); return; }
   if(KEYTOOL[k]&&!e.shiftKey) setTool(KEYTOOL[k]);
 });
-
-// ---- leaving the page with unsaved changes: the browser shows its own "leave site?" confirmation
-addEventListener('beforeunload',e=>{ if(docs.some(t=>t.dirty)){ e.preventDefault(); e.returnValue=''; } });
+// ---- the desktop app's open-from-OS and window-close events, and (in a browser) the "leave this page?" warning — see platform.js
+platform.wire({ onOpenPaths:paths=>platform.openPaths(paths), onCloseRequested:requestCloseWindow });

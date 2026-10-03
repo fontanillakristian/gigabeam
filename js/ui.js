@@ -3,7 +3,7 @@ function toast(m){ $('toast-msg').textContent=m; $('toast').classList.add('show'
 function openProps(){ propsPanel.classList.remove('hidden'); propsBtn.classList.add('on'); if(isNarrow()) hideLeft(); }
 function syncSwatch(){ document.querySelector('#color-swatch i').style.background=colorPick.value; }
 $('color-swatch').onclick=()=>colorPick.click(); colorPick.addEventListener('input',syncSwatch);
-$('empty-open').onclick=()=>fileInput.click();
+$('empty-open').onclick=()=>platform.open();
 
 // ---- tool buttons (the engine's old buildToolbar() used to attach these)
 document.querySelectorAll('.tool').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));

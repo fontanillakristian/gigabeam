@@ -243,29 +243,23 @@ async function buildExportBytes(){
 // Save the active document. Where the browser supports it (Chrome / Edge on https or localhost) a real "Save as" dialog is used, so we
 // know whether the file was actually written (and later saves of the same tab overwrite that file); elsewhere it is a normal download.
 // Resolves true when saved, false when cancelled or failed.
-async function saveActiveDocument(){
+// opts.saveAs: always ask where (File > Save As). The picking and writing live in platform.js (browser vs desktop app).
+async function saveActiveDocument(opts){
   if(!originalBytes) return false;
-  const tab=docs[activeDoc], suggested=((tab&&tab.name)||'document.pdf').replace(/\.pdf$/i,'')+'-edited.pdf';
-  let handle=tab&&tab.handle;
-  if(!handle&&window.showSaveFilePicker){ // ask where to save first, while the click that started this is still fresh
-    try{ handle=await window.showSaveFilePicker({suggestedName:suggested,types:[{description:'PDF document',accept:{'application/pdf':['.pdf']}}]}); }
-    catch(err){ if(err&&err.name==='AbortError') return false; handle=null; }
-  }
+  const saveAs=!!(opts&&opts.saveAs), tab=docs[activeDoc], suggested=((tab&&tab.name)||'document.pdf').replace(/\.pdf$/i,'')+'-edited.pdf';
+  const target=await platform.chooseSave(tab,{saveAs,suggested}); // asks first, while the click that started this is still fresh
+  if(!target) return false;
   downloadBtn.disabled=true; $('save-label').textContent='Saving…'; bgTask('Saving PDF…',null); await tick();
   try{
     const bytes=(await heavy('save')).bytes; // building the PDF runs in the background worker
-    if(handle){ const w=await handle.createWritable(); await w.write(bytes); await w.close(); if(tab) tab.handle=handle; }
-    else{
-      const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})), link=document.createElement('a'); link.href=url; link.download=suggested;
-      document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
-    }
-    if(tab){ tab.dirty=false; renderTabBar(); }
-    toast('Saved '+(handle?handle.name:suggested));
+    const r=await platform.write(target,bytes,suggested);
+    if(tab){ if(!target.download) tab.saveTarget=target; if(r.path){ tab.path=r.path; tab.name=r.name; tab.confirmedPath=r.path; } tab.dirty=false; renderTabBar(); }
+    toast('Saved '+r.name);
     return true;
-  }catch(err){ if(tab) tab.handle=null; await modalAlert('Could not save PDF: '+esc(err.message)); return false; }
+  }catch(err){ if(tab) tab.saveTarget=null; await modalAlert('Could not save PDF: '+esc(err.message)); return false; }
   finally{ downloadBtn.disabled=false; $('save-label').textContent='Save PDF'; bgTask(null); }
 }
-downloadBtn.onclick=saveActiveDocument;
+downloadBtn.onclick=()=>saveActiveDocument();
 
 // Crops the (already exported) document down to one rectangle of one page, ready to print.
 async function cropBytesToArea(bytes,area){
