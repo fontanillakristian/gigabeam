@@ -46,7 +46,7 @@ The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf
 
 ## Desktop app (Electron)
 
-The same app also runs as a desktop program (work in progress: the installer and `.exe` build come next).
+The same app also runs as a desktop program.
 
 ```bash
 npm install          # first time only
@@ -55,6 +55,26 @@ npm run smoke        # quick self-test of the desktop pieces (prints a report, t
 ```
 
 `electron/main.js` is the shell (window, native Open / Save dialogs, single window with files passed to it, asking about unsaved tabs before closing) and `electron/preload.js` gives the page its small file-access interface, `window.gigabeam` (described at the top of `js/platform.js`). In the desktop app Save writes straight to the file you opened, after asking once if it already exists.
+
+### Building the Windows installer
+
+```bash
+npm run pack         # a quick unpacked copy in dist/win-unpacked (to test)
+npm run dist         # the installer and the portable .exe, both in dist/
+```
+
+`npm run dist` produces `Gigabeam-Setup-<version>.exe` (installs for the current user, choice of folder, Start menu and desktop shortcuts, registers Gigabeam as a PDF viewer under "Open with", and a last-page checkbox that opens Windows Settings to make it the default PDF app) and `Gigabeam-Portable-<version>.exe` (runs without installing). The first build downloads some tools, so it needs internet.
+
+The builds are **not code-signed yet**, so Windows SmartScreen shows "Windows protected your PC" the first time: choose *More info* then *Run anyway*.
+
+To publish a release, push a version tag; GitHub Actions builds both files and attaches them to a Release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The app icon is `build/icon.ico` (and `build/icon.png`); replace them to change it.
 ### Keyboard shortcuts
 
 | Key | Action | Key | Action |

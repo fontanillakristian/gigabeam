@@ -9,3 +9,4 @@ desktop.ini
 # local test files and downloads
 *.pdf
 node_modules/
+dist/

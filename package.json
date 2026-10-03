@@ -10,12 +10,75 @@
   "scripts": {
     "start": "node node_modules/electron/cli.js .",
     "dev": "node node_modules/electron/cli.js . --dev",
-    "smoke": "node node_modules/electron/cli.js . --smoke"
+    "smoke": "node node_modules/electron/cli.js . --smoke",
+    "pack": "node node_modules/electron-builder/cli.js --win --dir",
+    "dist": "node node_modules/electron-builder/cli.js --win nsis portable"
   },
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^26.15.3"
   },
   "allowScripts": {
     "electron@33.4.11": true
+  },
+  "build": {
+    "appId": "io.github.fontanillakristian.gigabeam",
+    "productName": "Gigabeam",
+    "copyright": "Copyright (C) 2026 Kristian Carl B. Fontanilla (GPL-3.0)",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**",
+      "index.html",
+      "css/**",
+      "js/**",
+      "assets/**",
+      "vendor/**",
+      "package.json",
+      "LICENSE"
+    ],
+    "asar": true,
+    "fileAssociations": [
+      {
+        "ext": "pdf",
+        "name": "PDF document",
+        "description": "PDF document",
+        "role": "Viewer",
+        "icon": "build/icon.ico"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Gigabeam",
+      "include": "build/installer.nsh",
+      "artifactName": "Gigabeam-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "Gigabeam-Portable-${version}.${ext}"
+    }
   }
 }
