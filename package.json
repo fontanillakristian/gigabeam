@@ -8,9 +8,9 @@
   "license": "GPL-3.0-or-later",
   "private": true,
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --dev",
-    "smoke": "electron . --smoke"
+    "start": "node node_modules/electron/cli.js .",
+    "dev": "node node_modules/electron/cli.js . --dev",
+    "smoke": "node node_modules/electron/cli.js . --smoke"
   },
   "devDependencies": {
     "electron": "^33.0.0"
