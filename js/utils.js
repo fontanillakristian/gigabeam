@@ -232,3 +232,13 @@ function applyDash(el,o){ const d=dashAttr(o); if(d){ el.setAttribute('stroke-da
 // ---- measurement labels: the measured value by default; the user can replace it with any text ({value} inserts the live reading)
 function measuredValue(m){ const dp=m.decimals!=null?m.decimals:2; return Number(m.value).toLocaleString('en-US',{minimumFractionDigits:dp,maximumFractionDigits:dp})+' '+m.unit; }
 function measureLabel(m){ return (m.label!=null&&m.label!=='')?String(m.label).replace(/\{value\}/g,measuredValue(m)):measuredValue(m); }
+
+// ---- text box fonts: family + bold + italic. The saved PDF uses the matching standard font.
+const TEXT_FACES={
+  Helvetica:{label:'Helvetica (sans-serif)',css:'Helvetica, Arial, sans-serif',std:['Helvetica','HelveticaBold','HelveticaOblique','HelveticaBoldOblique']},
+  Times:{label:'Times (serif)',css:'"Times New Roman", Times, serif',std:['TimesRoman','TimesRomanBold','TimesRomanItalic','TimesRomanBoldItalic']},
+  Courier:{label:'Courier (monospace)',css:'"Courier New", Courier, monospace',std:['Courier','CourierBold','CourierOblique','CourierBoldOblique']}
+};
+const textFace=a=>TEXT_FACES[a.fontName]||TEXT_FACES.Helvetica;
+const textStdName=a=>textFace(a).std[(a.bold?1:0)+(a.italic?2:0)];
+const textCssFont=(a,px)=>`${a.italic?'italic ':''}${a.bold?'bold ':''}${px}px ${textFace(a).css}`;

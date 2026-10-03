@@ -15,7 +15,7 @@ function textBoxPx(a,W,H){
   if(a.boxW) return {w:a.boxW*W,h:a.boxH*H};
   const lines=(a.text||'').split('\n'), fs=a.size*scale;
   let maxw=60;
-  if(measureCtx){ measureCtx.font=`${fs}px Helvetica, Arial, sans-serif`; lines.forEach(l=>{ maxw=Math.max(maxw,measureCtx.measureText(l).width+8); }); }
+  if(measureCtx){ measureCtx.font=textCssFont(a,fs); lines.forEach(l=>{ maxw=Math.max(maxw,measureCtx.measureText(l).width+8); }); }
   else maxw=Math.max(60,Math.max(...lines.map(l=>l.length))*fs*0.55+8);
   return {w:maxw,h:lines.length*fs*1.2+8};
 }
@@ -265,7 +265,7 @@ function renderTextNode(n,a,idx){
   node.style.background=a.bg?(a.bgColor||'#ffffff'):'transparent';
   if(bw){ node.style.boxShadow=`inset 0 0 0 ${bw}px ${a.color}`; node.style.padding=`${1+bw}px ${2+bw}px`; }
   if(a.boxW){ node.style.width=(a.boxW*W)+'px'; node.style.height=(a.boxH*H)+'px'; }
-  const ta=document.createElement('textarea'); ta.value=a.text; ta.style.color=tc; ta.style.fontSize=(a.size*scale)+'px'; ta.style.textAlign=effAlign(a,W,H);
+  const ta=document.createElement('textarea'); ta.value=a.text; ta.style.color=tc; ta.style.fontSize=(a.size*scale)+'px'; ta.style.fontFamily=textFace(a).css; ta.style.fontWeight=a.bold?'700':'400'; ta.style.fontStyle=a.italic?'italic':'normal'; ta.style.textAlign=effAlign(a,W,H);
   if(!a.boxW){ ta.rows=1; ta.style.width='auto'; }
   ta.addEventListener('input',()=>{ markDirty(); a.text=ta.value; node.classList.toggle('blank',!ta.value); if(!a.boxW){ autoGrow(ta); if(a.leader) buildSvg(n); } });
   ta.addEventListener('mousedown',()=>{ drawPage=n; if(!isSel(n,'texts',idx)) selectTextNode(n,idx); });

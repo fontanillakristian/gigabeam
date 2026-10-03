@@ -5,6 +5,8 @@ async function buildExportBytes(){
       appendBezierCurve,setLineCap,setLineJoin,LineCapStyle,LineJoinStyle}=PDFLib;
     const pdf=await loadPdf(originalBytes);
     const font=await pdf.embedFont(StandardFonts.Helvetica);
+    const faceCache={Helvetica:font}; // the standard fonts text boxes use, embedded once each, on demand
+    const faceFor=async a=>{ const nm=textStdName(a); if(!faceCache[nm]) faceCache[nm]=await pdf.embedFont(StandardFonts[nm]); return faceCache[nm]; };
     const pages=pdf.getPages();
     const ctxP=pdf.context;
     const hexArr=h=>{ h=h.replace('#',''); return [parseInt(h.substr(0,2),16)/255, parseInt(h.substr(2,2),16)/255, parseInt(h.substr(4,2),16)/255]; };
@@ -116,6 +118,7 @@ async function buildExportBytes(){
       const flat=[]; pts.forEach(p=>flat.push(p.x,p.y));
       addAnnot(page, Object.assign({ Type:'Annot', Subtype:'Polygon', Rect:[bx1,by1,bx2,by2], Vertices:flat, C:color, IC:color, BS:dash?{W:w,S:'D',D:dash}:{W:w}, F:4, AP:{N:xobjRef} }, extra||{}), textFields);
     }
+    for(const pn of Object.keys(annotations)) for(const a of (annotations[pn].texts||[])) await faceFor(a);
     for(const pn of Object.keys(annotations)){
       const page=pages[parseInt(pn,10)-1]; if(!page) continue;
       const geo=pageGeom(page); curGeo=geo; const W=geo.W, H=geo.H; const d=annotations[pn]; // W,H = the page as displayed
@@ -178,13 +181,14 @@ async function buildExportBytes(){
           polygonAnnot(page,pts,col,m.w,label,fs,tcol,{CEK:'measurement'},{Contents:label,CED:JSON.stringify(m)},dashPattern(m)); }
       });
       d.texts.forEach(a=>{
+        const tf=faceCache[textStdName(a)]||font; // this text box's own font (family, bold, italic)
         const lineCol=hexArr(a.color), txtCol=hexArr(a.textColor||a.color), pos=xy(a.fx,a.fy,W,H), al=effAlign(a,W,H); // pos = top-left of the box
         const bw=a.borderW>0?a.borderW:0, pad=2+bw;
         const lrgb=rgb(lineCol[0],lineCol[1],lineCol[2]), trgb=rgb(txtCol[0],txtCol[1],txtCol[2]);
         const rawLines=lineSplit(cleanText(a.text));
         let boxWpt,boxHpt;
         if(a.boxW){ boxWpt=a.boxW*W; boxHpt=a.boxH*H; }
-        else { const maxLW=Math.max(10,...rawLines.map(l=>font.widthOfTextAtSize(l,a.size))); boxWpt=maxLW+8+2*bw; boxHpt=rawLines.length*a.size*1.2+8+2*bw; }
+        else { const maxLW=Math.max(10,...rawLines.map(l=>tf.widthOfTextAtSize(l,a.size))); boxWpt=maxLW+8+2*bw; boxHpt=rawLines.length*a.size*1.2+8+2*bw; }
         const llx=pos.x, ury=pos.y, urx=pos.x+boxWpt, lly=pos.y-boxHpt;
         // A callout's pointer line is folded into this SAME FreeText annotation (via a
         // custom-drawn leader + native /CL) rather than a second Line annotation, so a
@@ -205,7 +209,7 @@ async function buildExportBytes(){
         const boxOffX=llx-ox1, boxOffY=lly-oy1;
         let lines=[];
         rawLines.forEach(line=>{ if(line===''){ lines.push(''); return; }
-          const wrapped=breakTextIntoLines(line,[' '],boxWpt-2*pad,t=>font.widthOfTextAtSize(t,a.size));
+          const wrapped=breakTextIntoLines(line,[' '],boxWpt-2*pad,t=>tf.widthOfTextAtSize(t,a.size));
           lines.push(...(wrapped.length?wrapped:[''])); });
         let ops=[];
         if(a.bg){ const bgCol=hexArr(a.bgColor||'#ffffff');
@@ -221,12 +225,12 @@ async function buildExportBytes(){
             ops.push(...drawLine({start:tipL,end:{x:tipL.x+a.arrowSize*Math.cos(a2),y:tipL.y+a.arrowSize*Math.sin(a2)},thickness:lt,color:lrgb})); }
         }
         lines.forEach((line,i)=>{
-          const lw=font.widthOfTextAtSize(line,a.size);
+          const lw=tf.widthOfTextAtSize(line,a.size);
           let lx=boxOffX+pad; if(al==='center') lx=boxOffX+Math.max(pad,(boxWpt-lw)/2); else if(al==='right') lx=boxOffX+Math.max(pad,boxWpt-lw-pad);
           const ly=boxOffY+boxHpt-a.size-i*a.size*1.2-pad;
-          ops.push(...drawText(font.encodeText(line),{x:lx,y:ly,size:a.size,font:'F1',color:trgb,rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
+          ops.push(...drawText(tf.encodeText(line),{x:lx,y:ly,size:a.size,font:'F1',color:trgb,rotate:degrees(0),xSkew:degrees(0),ySkew:degrees(0)}));
         });
-        const xobj=ctxP.formXObject(ops,{BBox:[0,0,ox2-ox1,oy2-oy1],Resources:{Font:{F1:font.ref}}});
+        const xobj=ctxP.formXObject(ops,{BBox:[0,0,ox2-ox1,oy2-oy1],Resources:{Font:{F1:tf.ref}}});
         const xobjRef=ctxP.register(xobj);
         const qVal=al==='center'?1:al==='right'?2:0;
         const dictObj={ Type:'Annot', Subtype:'FreeText', Rect:[ox1,oy1,ox2,oy2], Q:qVal, BS:{W:bw}, F:4, AP:{N:xobjRef}, CEK:'text' };

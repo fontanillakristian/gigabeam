@@ -16,6 +16,8 @@ function renderProps(){
   if(isText){
     html+=`<label>Font color<input type="color" id="p-textcolor" value="${obj.textColor||obj.color}"></label>`;
     html+=`<label>Font size<input type="number" id="p-size" min="6" max="200" value="${obj.size}"></label>`;
+    html+=`<label>Font<select id="p-font">${Object.keys(TEXT_FACES).map(k=>`<option value="${k}"${(obj.fontName||'Helvetica')===k?' selected':''}>${TEXT_FACES[k].label}</option>`).join('')}</select></label>`;
+    html+=`<div style="display:flex;gap:18px;margin-top:8px"><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="p-bold" ${obj.bold?'checked':''} style="width:auto;margin:0"><b>Bold</b></label><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="p-italic" ${obj.italic?'checked':''} style="width:auto;margin:0"><i>Italic</i></label></div>`;
     if(obj.boxW) html+=`<label>Justification<select id="p-align">
       <option value="left"${(!obj.align||obj.align==='left')?' selected':''}>Left</option>
       <option value="center"${obj.align==='center'?' selected':''}>Center</option>
@@ -50,7 +52,7 @@ function renderProps(){
   html+=`<button id="p-setdef" style="margin-top:8px;width:100%">Set as default</button>`;
   html+=`<button id="p-del" class="primary" style="margin-top:8px;width:100%">Delete</button>`;
   propsBody.innerHTML=html;
-  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-align','p-border','p-bg','p-bgcolor']]]);
+  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-font','p-bold','p-italic','p-align','p-border','p-bg','p-bgcolor']]]);
   const redraw=()=>{ buildSvg(pg); if(isText) buildTextNodes(pg); };
   const wire=(id,fn,evt='input')=>{ const el=$(id); if(!el) return; let pushed=false;
     el.addEventListener('focus',()=>pushed=false);
@@ -64,6 +66,8 @@ function renderProps(){
   if($('p-mlabel-reset')) $('p-mlabel-reset').onclick=()=>{ pushHistory(); obj.label=null; redraw(); renderProps(); scheduleMarkups(); };
   wire('p-size', v=>{ const nn=parseFloat(v); if(nn>0){ if(isMeasure) obj.fontSize=nn; else obj.size=nn; } });
   wire('p-align', v=>obj.align=v, 'change');
+  wire('p-font', v=>obj.fontName=v, 'change');
+  { const fb=$('p-bold'), fi=$('p-italic'); if(fb) fb.addEventListener('change',()=>{ pushHistory(); obj.bold=fb.checked; redraw(); }); if(fi) fi.addEventListener('change',()=>{ pushHistory(); obj.italic=fi.checked; redraw(); }); }
   wire('p-border', v=>{ const nn=parseFloat(v); obj.borderW=nn>0?nn:0; });
   wire('p-w', v=>obj.w=parseFloat(v)||obj.w);
   wire('p-lt', v=>{ obj.dash=v; const s=$('p-ltscale'); if(s) s.disabled=(v==='solid'); }, 'change');
@@ -94,6 +98,7 @@ function setAsDefault(arrName,obj){
   const extra={};
   if(obj.arrowSize!=null) extra.arrowSize=obj.arrowSize;
   if(obj.align!=null) extra.align=obj.align;
+  if(obj.fontName!=null) extra.fontName=obj.fontName; if(obj.bold!=null) extra.bold=obj.bold; if(obj.italic!=null) extra.italic=obj.italic;
   if(obj.bg!=null){ extra.bg=obj.bg; extra.bgColor=obj.bgColor; }
   if(obj.fill!=null){ extra.fill=obj.fill; extra.fillColor=obj.fillColor; }
   if(obj.opacity!=null) extra.opacity=obj.opacity;
@@ -148,12 +153,7 @@ document.addEventListener('keydown',e=>{
   }
   if(k==='delete'||k==='backspace'){
     if(tag==='INPUT'||tag==='SELECT') return; // let those fields edit normally
-    if(tag==='TEXTAREA'){
-      // inside a text box's own field: only remove the whole box via keyboard once
-      // it's empty, so Backspace still edits non-empty text as expected.
-      if(selected&&selected.arrName==='texts'&&active.value===''){ deleteSelected(); e.preventDefault(); }
-      return;
-    }
+    if(tag==='TEXTAREA') return; // typing inside a text box: Backspace / Delete only edit its text, never remove the box (an empty form blank is meant to stay). Remove a box with its x button, or press Esc and then Delete.
     if(selected){ deleteSelected(); e.preventDefault(); }
     return;
   }
