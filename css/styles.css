@@ -2,7 +2,7 @@
 @font-face{font-family:'Caveat';font-weight:500;font-display:swap;src:url(../vendor/fonts/Caveat.ttf) format('truetype');}
 @font-face{font-family:'Dancing Script';font-weight:500;font-display:swap;src:url(../vendor/fonts/DancingScript.ttf) format('truetype');}
 @font-face{font-family:'Great Vibes';font-weight:400;font-display:swap;src:url(../vendor/fonts/GreatVibes.ttf) format('truetype');}
-/* PDF Viewer & Editor: application styles.
+/* Gigabeam: application styles.
    Design tokens live in :root; everything else is grouped by area (menu bar, tabs, toolbar, panels, canvas, status bar, dialogs). */
 /* ============ Design tokens ============ */
 :root{

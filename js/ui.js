@@ -28,7 +28,7 @@ async function readFileWithProgress(file,onp){
 // Only files this editor saved can contain its markups / layout / flatten data, so anything else skips the deep parse.
 async function needsDeepRead(buf,doc){
   if(rawHas(buf,'/CEK','/CELayout','/CEFL','/CEWM')) return true;
-  try{ const m=await doc.getMetadata(), i=m.info||{}; return /pdf-lib|PDF Viewer & Editor/i.test((i.Producer||'')+' '+(i.Creator||'')); }catch(e){ return false; }
+  try{ const m=await doc.getMetadata(), i=m.info||{}; return /pdf-lib|Gigabeam|PDF Viewer & Editor/i.test((i.Producer||'')+' '+(i.Creator||'')); }catch(e){ return false; }
 }
 async function deepImport(tab){
   bgTask('Reading saved markups…',null); await tick();

@@ -1,4 +1,4 @@
-# PDF Viewer & Editor
+# Gigabeam
 
 A fast, private PDF viewer and markup editor that runs entirely in the browser. Nothing is uploaded: files are opened, edited and saved on your own machine.
 

@@ -126,7 +126,7 @@ async function addWatermarkStreams(pdf,pages){
 async function exportExtras(x){
   const {pdf,pages,font,ctxP,addAnnot,setGeo,hexArr}=x, {PDFName,PDFHexString,rgb,degrees,drawText}=PDFLib;
   stripTaggedStreams(pdf,'CEWM');
-  pdf.setProducer('PDF Viewer & Editor (pdf-lib)'); // marks the file as ours, so reopening it here knows to look for saved markups
+  pdf.setProducer('Gigabeam (pdf-lib)'); // marks the file as ours, so reopening it here knows to look for saved markups
   const safe=s=>Array.from(s).map(ch=>{ try{ font.encodeText(ch); return ch; }catch(e){ return '?'; } }).join('');
   pages.forEach((page,i)=>{
     const items=textItemsFor(i+1,pages.length); if(!items.length) return;
