@@ -14,7 +14,7 @@ function makeDummy(){
 self.window=self; self.document=makeDummy(); self.pdfjsLib=makeDummy(); self.innerWidth=1024; self.innerHeight=768;
 
 // the app scripts, in the same order as js/boot.js, minus the ones that only drive the UI (boot, shell, touch, init)
-const WORKER_SCRIPTS=['state','utils','documents','pages','overlay','tools','properties','dialogs','export','ui','markups-list','bookmarks','forms','flatten','layout','layout-dialog','ocr','core'];
+const WORKER_SCRIPTS=['state','utils','documents','pages','overlay','tools','properties','dialogs','export','ui','markups-list','bookmarks','forms','flatten','layout','layout-dialog','ocr','protect','core'];
 
 // load the state the page sent into the shared globals the app code reads
 function applyState(s){
@@ -48,6 +48,6 @@ self.onmessage=async e=>{
       collectImages(r);
       const transfer=[]; if(r&&r.bytes&&r.bytes.buffer) transfer.push(r.bytes.buffer); if(r&&r.stripped&&r.stripped.buffer) transfer.push(r.stripped.buffer); // hand the (large) files back without copying
       self.postMessage({type:'result',id:m.id,result:r},transfer);
-    }catch(err){ self.postMessage({type:'error',id:m.id,message:(err&&err.message)||String(err)}); }
+    }catch(err){ self.postMessage({type:'error',id:m.id,message:(err&&err.message)||String(err),code:err&&err.code}); }
   }
 };

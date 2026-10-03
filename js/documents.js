@@ -39,7 +39,9 @@ async function openFiles(files){
   for(const file of files){
     try{
       showLoad(file.name,'Reading file…',0);
-      const buf=await readFileWithProgress(file,p=>showLoad(file.name,'Reading file… '+Math.round(p*100)+'%',p*25));
+      let buf=await readFileWithProgress(file,p=>showLoad(file.name,'Reading file… '+Math.round(p*100)+'%',p*25));
+      let protection=null; // a password-protected file is decrypted first (asking for the password); the tab then keeps the protection so saving re-applies it
+      if(rawHas(buf,'/Encrypt')){ showLoad(file.name,'Unlocking…',20); const pr=await openProtected(file.name,buf); if(!pr){ hideLoad(); continue; } buf=pr.bytes; protection=pr.protection; }
       showLoad(file.name,'Opening document…',30); await tick();
       let doc;
       try{ doc=await pdfjsLib.getDocument({data:buf.slice(0)}).promise; }
@@ -49,8 +51,8 @@ async function openFiles(files){
       let scale0=1.25; // big sheets (A3 / ARCH) open fitted to the window width
       try{ const w=(await doc.getPage(1)).getViewport({scale:1}).width, avail=main.clientWidth-90; if(w*1.25>avail) scale0=Math.min(3,Math.max(0.5,avail/w)); }catch(err){}
       const tab={ layout:newLayout(), bookmarks:bm, flatPages:new Set(), name:file.name, pdfDoc:doc, originalBytes:buf, numPages:doc.numPages, currentPage:1,
-        scale:scale0, annotations:{}, scaleInfo:null, historyStack:[], redoStack:[], selected:null, deep, path:platform.pathOf(file) };
-      platform.noteOpened(tab.path);
+        scale:scale0, annotations:{}, scaleInfo:null, historyStack:[], redoStack:[], selected:null, deep, path:platform.pathOf(file), protection };
+      platform.noteOpened(tab.path); if(protection){ const pm=protection.perms||{}, restricted=pm.print!=='high'||!pm.modify||!pm.copy||!pm.annotate||!pm.assemble; toast(protection.role==='owner'?'Opened with the owner password. Saving keeps the file protected, using that password to open it too.':restricted?'Opened with the open password. Saving keeps the file protected and its restrictions, but this password now also acts as the owner password.':'Password protected. Saving keeps it protected.'); }
       docs.push(tab); added.push(tab);
     }catch(err){ hideLoad(); await modalAlert('Could not open '+file.name+': '+err.message); }
   }
@@ -125,7 +127,7 @@ function renderTabBar(){
   { const t=docs[activeDoc]; platform.setTitle(t?(t.dirty?'● ':'')+t.name+' - Gigabeam':'Gigabeam'); } // window title (desktop) / tab title (browser)
   docs.forEach((t,i)=>{
     const b=document.createElement('div'); b.className='tab'+(i===activeDoc?' active':'')+(t.dirty?' dirty':''); b.title=t.name+(t.dirty?' (unsaved changes)':'');
-    b.innerHTML=(i===activeDoc||t.dirty?'<span class="dot"></span>':'')+'<span class="name"></span><button class="x" aria-label="Close tab"><svg class="i sm"><use href="#i-x"/></svg></button>';
+    b.innerHTML=(i===activeDoc||t.dirty?'<span class="dot"></span>':'')+'<span class="name"></span>'+(t.protection?'<svg class="i sm lock" title="Password protected"><use href="#i-lock"/></svg>':'')+'<button class="x" aria-label="Close tab"><svg class="i sm"><use href="#i-x"/></svg></button>';
     b.querySelector('.name').textContent=t.name;
     b.querySelector('.x').onclick=ev=>{ ev.stopPropagation(); requestCloseTab(i); };
     b.onclick=()=>{ if(i!==activeDoc) loadTab(i); };

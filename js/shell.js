@@ -75,6 +75,7 @@ const COMMANDS=[
   ['File','Open PDF…','Ctrl+O',()=>platform.open()],
   ['File','Save PDF','Ctrl+S',needDoc(()=>{ if(!downloadBtn.disabled) downloadBtn.click(); })],
   ['File','Save PDF as…','Ctrl+Shift+S',needDoc(()=>{ if(!downloadBtn.disabled) saveActiveDocument({saveAs:true}); })],
+  ['File','Password protection…','',needDoc(protectDialog)],
   ['File','Print…','Ctrl+P',needDoc(()=>{ if(!printBtn.disabled) printBtn.click(); })],
   ['File','-'],['File','Close tab','',needDoc(()=>requestCloseTab(activeDoc))],
   ['Edit','Undo','Ctrl+Z',needDoc(doUndo)],['Edit','Redo','Ctrl+Y',needDoc(doRedo)],['Edit','-'],

@@ -262,7 +262,7 @@ async function saveActiveDocument(opts){
   if(!target) return false;
   downloadBtn.disabled=true; $('save-label').textContent='Saving…'; bgTask('Saving PDF…',null); await tick();
   try{
-    const bytes=(await heavy('save')).bytes; // building the PDF runs in the background worker
+    const bytes=(await heavy('save',tab&&tab.protection?{protect:tab.protection}:undefined)).bytes; // building (and, with a password set, encrypting) the PDF runs in the background worker
     const r=await platform.write(target,bytes,suggested);
     if(tab){ if(!target.download) tab.saveTarget=target; if(r.path){ tab.path=r.path; tab.name=r.name; tab.confirmedPath=r.path; } tab.dirty=false; renderTabBar(); }
     toast('Saved '+r.name);

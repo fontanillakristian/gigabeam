@@ -19,7 +19,7 @@ function startWorker(){
         const m=e.data;
         if(m.type==='ready') resolve(true);
         else if(m.type==='initError') fail(m.message);
-        else{ const p=pdfWorker.pending.get(m.id); if(!p) return; pdfWorker.pending.delete(m.id); if(m.type==='result') p.resolve(m.result); else p.reject(new Error(m.message)); }
+        else{ const p=pdfWorker.pending.get(m.id); if(!p) return; pdfWorker.pending.delete(m.id); if(m.type==='result') p.resolve(m.result); else p.reject(Object.assign(new Error(m.message),{code:m.code})); }
       };
       const lib=document.querySelector('script[src*="pdf-lib"]');
       w.postMessage({type:'init',lib:lib&&lib.src});

@@ -41,7 +41,8 @@ async function finishDoc(doc,extra){
 
 const CORE={
   // ---- save / print
-  async save(){ return {bytes:await buildExportBytes()}; },
+  async save(p){ let bytes=await buildExportBytes(); if(p&&p.protect) bytes=await protectPdf(bytes,p.protect); return {bytes}; }, // p.protect: {userPw, ownerPw, perms} encrypts the result (protect.js)
+  async unprotect(p){ return unprotectPdf(p.bytes,p.password); }, // open a password-protected file (p.bytes, p.password)
   async print(p){ let bytes=await buildExportBytes(); if(p.area) bytes=await cropBytesToArea(bytes,p.area); return {bytes}; },
 
   // ---- page operations

@@ -9,6 +9,7 @@ Built for drawings and plan sets, but it works on any PDF.
 - **View** big files quickly: page 1 appears in well under a second even for 800+ page sets, pages and thumbnails render lazily, and progress is shown while opening.
 - **Markups:** text boxes, callouts, lines, rectangles, ellipses, polygons, polylines, revision clouds, highlighter, images and signatures. Every markup is saved as a real PDF annotation, so it stays editable in this editor and visible in other viewers.
 - **Measure:** calibrate a scale (or pick a template), then measure lengths and areas. Labels can be replaced with your own text.
+- **Password protection** (Document > lock button, or File > Password protection): AES-256 encryption of the saved file with an open password, plus optional restrictions (print, copy, edit, comment, page changes). Files you open with a password stay protected when you save. Without the password the file cannot be read, split, merged or reprinted; the restrictions themselves are requests that not every program honours.
 - **Text formatting:** bold, italic, strikethrough, superscript and subscript. In text boxes and callouts, select part of the text while typing and use the bar above the box (or Ctrl+B / Ctrl+I); the Properties buttons format the whole box. Measurement labels and dropdown fields take the same styles for the whole label / field. Font family (Helvetica, Times, Courier) is per box.
 - **Text:** select and copy page text (Select text tool, X), and **Find** (Ctrl+F) with highlighted results.
 - **OCR:** recognize the text of scanned pages (Document > Recognize text), offline, English. Saving writes it into the PDF as invisible text, so the file becomes searchable anywhere.
@@ -101,6 +102,9 @@ The app is plain JavaScript (no framework, no bundler). The files are ordinary s
 | `flatten.js` | flatten / unflatten |
 | `layout.js` | page numbers, header & footer, watermark: data model, live overlay, PDF export |
 | `layout-dialog.js` | the tabbed Page layout dialog for those three |
+| `protect.js` | AES-256 PDF encryption and decryption (Web Crypto; also runs in the background worker) |
+| `protect-ui.js` | the password dialog, the prompt when opening a protected file, tab lock mark |
+| `tips.js` | live tool name in the options bar and the 1.5-second name tag on buttons |
 | `ocr.js` | text recognition (Tesseract.js) and writing the recognized text into the saved PDF |
 | `text.js` | the selectable text layer, the Select text tool, and Find |
 | `detect.js` | Detect form fields: reads lines, boxes and text (or the page image on scans) and shows suggestions for review |
@@ -129,6 +133,7 @@ Current versions of Chrome, Edge, Firefox and Safari.
 - "Behind page content" watermarks are hidden by opaque scanned pages; use "Blend with page" for scans.
 - Touch and pen input has been tested with simulated events only, not on real devices.
 - Saved annotations and form fields have been checked with pdf.js only, not Acrobat or Bluebeam.
+- Password protection: the open password is real encryption (AES-256, ISO 32000-2) but there is no recovery for a lost password; restrictions are advisory and can be removed by anyone who can open the file. Only AES-256 files (made here, or by current Acrobat) can be opened for editing; older RC4 / AES-128 files and files whose objects are compressed cannot. Protected files are larger (objects are not compressed), by about 4x on a file with hundreds of thousands of objects. It needs https or localhost.
 - Text formatting is not available for page numbers, header / footer and watermark text, and there is no underline. Pasting into a text box keeps plain text only.
 - Field detection is a best guess: expect to discard a few suggestions and add a few by hand, especially on dense or skewed scans and on drawing sheets.
 - OCR is English only and does not read handwriting. Text pages take about 3–5 seconds each; dense drawing sheets 20–60 seconds. Words it is unsure of (under 40% confidence) are left out. Other programs' markups and form fields are shown and kept, but can't be edited here.

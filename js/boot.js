@@ -25,6 +25,8 @@
     'js/flatten.js',
     'js/layout.js',
     'js/layout-dialog.js',
+    'js/protect.js',
+    'js/protect-ui.js',
     'js/ocr.js',
     'js/text.js',
     'js/detect.js',
@@ -32,6 +34,7 @@
     'js/worker-api.js',
     'js/shell.js',
     'js/touch.js',
+    'js/tips.js',
     'js/init.js'
   ];
 
