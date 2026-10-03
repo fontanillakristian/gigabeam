@@ -102,7 +102,7 @@ The app is plain JavaScript (no framework, no bundler). The files are ordinary s
 | `flatten.js` | flatten / unflatten |
 | `layout.js` | page numbers, header & footer, watermark: data model, live overlay, PDF export |
 | `layout-dialog.js` | the tabbed Page layout dialog for those three |
-| `protect.js` | AES-256 PDF encryption and decryption (Web Crypto; also runs in the background worker) |
+| `protect.js` | PDF encryption (AES-256) and decryption (AES-256, AES-128, RC4); Web Crypto plus a small MD5 / RC4; also runs in the background worker |
 | `protect-ui.js` | the password dialog, the prompt when opening a protected file, tab lock mark |
 | `tips.js` | live tool name in the options bar and the 1.5-second name tag on buttons |
 | `ocr.js` | text recognition (Tesseract.js) and writing the recognized text into the saved PDF |
@@ -133,7 +133,7 @@ Current versions of Chrome, Edge, Firefox and Safari.
 - "Behind page content" watermarks are hidden by opaque scanned pages; use "Blend with page" for scans.
 - Touch and pen input has been tested with simulated events only, not on real devices.
 - Saved annotations and form fields have been checked with pdf.js only, not Acrobat or Bluebeam.
-- Password protection: the open password is real encryption (AES-256, ISO 32000-2) but there is no recovery for a lost password; restrictions are advisory and can be removed by anyone who can open the file. Only AES-256 files (made here, or by current Acrobat) can be opened for editing; older RC4 / AES-128 files and files whose objects are compressed cannot. Protected files are larger (objects are not compressed), by about 4x on a file with hundreds of thousands of objects. It needs https or localhost.
+- Password protection: the open password is real encryption (AES-256, ISO 32000-2) but there is no recovery for a lost password; restrictions are advisory and can be removed by anyone who can open the file. Files protected with AES-256, AES-128 or RC4 (40 or 128-bit) can be opened for editing, and are re-saved with AES-256; files whose objects are packed into compressed object streams cannot be opened yet. Protected files are larger (objects are not compressed), by about 4x on a file with hundreds of thousands of objects. It needs https or localhost.
 - Text formatting is not available for page numbers, header / footer and watermark text, and there is no underline. Pasting into a text box keeps plain text only.
 - Field detection is a best guess: expect to discard a few suggestions and add a few by hand, especially on dense or skewed scans and on drawing sheets.
 - OCR is English only and does not read handwriting. Text pages take about 3–5 seconds each; dense drawing sheets 20–60 seconds. Words it is unsure of (under 40% confidence) are left out. Other programs' markups and form fields are shown and kept, but can't be edited here.

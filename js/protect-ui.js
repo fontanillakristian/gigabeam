@@ -36,7 +36,7 @@ async function openProtected(name,buf){
     }
     if(r.notEncrypted) return {bytes:buf,protection:null};
     const owner=r.role==='owner';
-    return {bytes:r.bytes,protection:{userPw:pw,ownerPw:owner?pw:'',perms:r.perms,fromFile:true,role:r.role}};
+    return {bytes:r.bytes,protection:{userPw:pw,ownerPw:owner?pw:'',perms:r.perms,fromFile:true,role:r.role,legacy:!!r.legacy}};
   }
 }
 
