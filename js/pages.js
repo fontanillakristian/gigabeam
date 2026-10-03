@@ -50,7 +50,7 @@ async function renderPageCanvas(v){
     const page=await pdfDoc.getPage(v.num);
     if(tok!==layoutToken) return;
     v.canvas.width=v.w; v.canvas.height=v.h;
-    await page.render({canvasContext:v.canvas.getContext('2d'), viewport:page.getViewport({scale}), annotationMode:pdfjsLib.AnnotationMode.DISABLE}).promise;
+    await page.render({canvasContext:v.canvas.getContext('2d'), viewport:page.getViewport({scale}), annotationMode:pdfjsLib.AnnotationMode.ENABLE}).promise;
     if(tok===layoutToken) v.rendered=true;
   }catch(e){ /* a page that fails to paint just stays blank */ }
   finally{ v.rendering=false; }
@@ -197,7 +197,7 @@ async function renderPagePanel(){
     try{ const page=await pdfDoc.getPage(+w.dataset.n), v0=page.getViewport({scale:1}), tv=page.getViewport({scale:240/v0.width}), c=w.querySelector('canvas');
       if(myToken!==pagePanelToken) return;
       c.width=Math.floor(tv.width); c.height=Math.floor(tv.height);
-      await page.render({canvasContext:c.getContext('2d'),viewport:tv,annotationMode:pdfjsLib.AnnotationMode.DISABLE}).promise;
+      await page.render({canvasContext:c.getContext('2d'),viewport:tv,annotationMode:pdfjsLib.AnnotationMode.ENABLE}).promise;
       w.dataset.state='done';
     }catch(e){ w.dataset.state=''; }
   };

@@ -5,8 +5,35 @@
      - on the main thread, as a fallback when a worker can't start (see heavy() in worker-api.js).
    Each returns a result object; when it changes the file it includes the new `bytes` and the set of flattened pages `flat`. */
 
+// The working copy of a document never carries this editor's own visible annotations: the app draws those itself from its state
+// (and writes them back on save), while pdf.js draws every OTHER annotation (other programs' markups, form fields). Removing ours
+// from the working copy keeps them from being drawn twice. Hidden originals of flattened pages (F=2) stay, for Unflatten.
+function stripOwnAnnots(doc){
+  const {PDFName,PDFRef,PDFDict}=PDFLib, ctx=doc.context, CEK=PDFName.of('CEK'), gone=new Set();
+  const drop=r=>{ if(r instanceof PDFRef) ctx.delete(r); };
+  const dropAppearance=d=>{ const ap=ctx.lookup(d.get(PDFName.of('AP'))); if(!(ap instanceof PDFDict)) return;
+    [PDFName.of('N'),PDFName.of('D')].forEach(k=>{ const v=ap.get(k), st=v instanceof PDFRef?ctx.lookup(v):null;
+      if(v instanceof PDFRef){ // an image stamp's appearance owns its image XObject
+        try{ const res=st&&st.dict?ctx.lookup(st.dict.get(PDFName.of('Resources'))):null, xo=res&&res.get?ctx.lookup(res.get(PDFName.of('XObject'))):null, im=xo&&xo.get?xo.get(PDFName.of('Im1')):null;
+          if(im instanceof PDFRef){ const is=ctx.lookup(im); if(is&&is.dict) drop(is.dict.get(PDFName.of('SMask'))); drop(im); } }catch(e){}
+        drop(v); }
+      else if(v instanceof PDFDict) v.entries().forEach(([,r])=>drop(r)); }); }; // form field states (On / Off)
+  doc.getPages().forEach(pg=>{ const arr=pg.node.Annots(); if(!arr) return;
+    for(let i=arr.size()-1;i>=0;i--){ const ref=arr.get(i), d=ctx.lookup(ref);
+      if(!(d&&d.get&&d.get(CEK))) continue;
+      const F=d.get(PDFName.of('F')); if(F&&F.asNumber&&(F.asNumber()&2)===2) continue;
+      arr.remove(i); gone.add(String(ref)); dropAppearance(d); drop(d.get(PDFName.of('CEI'))); drop(ref); } });
+  if(!gone.size) return 0;
+  const af=doc.catalog.lookup(PDFName.of('AcroForm')), fa=af instanceof PDFDict?af.lookup(PDFName.of('Fields')):null;
+  if(fa&&fa.asArray) for(let i=fa.size()-1;i>=0;i--){ const r=fa.get(i), d=ctx.lookup(r);
+    if(gone.has(String(r))){ fa.remove(i); continue; }
+    if(d&&d.get&&d.get(CEK)){ const kids=d.lookup(PDFName.of('Kids')); // a radio group: drop it once none of its buttons are left
+      if(kids&&kids.asArray&&kids.asArray().every(k=>gone.has(String(k)))){ fa.remove(i); drop(r); } } }
+  return gone.size;
+}
 // finish an edited pdf-lib document: which pages are flattened now, then the saved bytes
 async function finishDoc(doc,extra){
+  stripOwnAnnots(doc);
   const flat=await detectFlattened(doc);
   const bytes=await doc.save(SAVE_OPTS);
   return Object.assign({bytes,flat:Array.from(flat)},extra);
@@ -88,8 +115,9 @@ const CORE={
       }
       setPageContents(page,ctxP,refs);
     });
-    const flat=await detectFlattened(doc), bytes=await doc.save(SAVE_OPTS);
-    return {bytes,flat:Array.from(flat),annotations:await importAnnotations(bytes,flat)}; // what's editable on screen afterwards (hidden originals of flat pages stay off screen)
+    const flat=await detectFlattened(doc), ann=await importAnnotations(doc,flat); // what's editable on screen afterwards (hidden originals of flat pages stay off screen)
+    stripOwnAnnots(doc); // (the editable copies now live in `ann`)
+    return {bytes:await doc.save(SAVE_OPTS),flat:Array.from(flat),annotations:ann};
   },
   async unflatten(p){
     const doc=await loadPdf(await buildExportBytes());
@@ -103,16 +131,19 @@ const CORE={
       for(let k=0;k<arr.size();k++){ const d=ctxP.lookup(arr.get(k)); if(!d||!d.get||!d.get(PDFName.of('CEK'))) continue;
         const F=d.get(PDFName.of('F')); if(F&&F.asNumber&&(F.asNumber()&2)===2) d.set(PDFName.of('F'),PDFNumber.of(4)); }
     });
-    const flat=await detectFlattened(doc), bytes=await doc.save(SAVE_OPTS);
-    return {bytes,flat:Array.from(flat),annotations:await importAnnotations(bytes,flat)};
+    const flat=await detectFlattened(doc), ann=await importAnnotations(doc,flat);
+    stripOwnAnnots(doc); // (the editable copies now live in `ann`)
+    return {bytes:await doc.save(SAVE_OPTS),flat:Array.from(flat),annotations:ann};
   },
 
   // ---- reading the data this editor saved in a file (markups, layout, flatten info): one parse serves all of it
   async inspect(p){ // p.bytes: the file to read (it need not be the tab that is open now)
     const src=p.bytes, doc=await loadPdf(src,{ignoreEncryption:true,updateMetadata:false});
     const lay=await importLayout(doc), flat=await detectFlattened(doc), ann=await importAnnotations(doc,flat);
-    let stripped=null;
-    if(lay.watermark&&rawHas(src,'/CEWM')){ stripTaggedStreams(doc,'CEWM'); stripped=await doc.save(SAVE_OPTS); } // a saved watermark is a content stream: lift it out so it is drawn (and editable) as an overlay
+    let changed=false;
+    if(lay.watermark&&rawHas(src,"/CEWM")){ stripTaggedStreams(doc,"CEWM"); changed=true; } // a saved watermark is a content stream: lift it out so it is drawn (and editable) as an overlay
+    if(stripOwnAnnots(doc)) changed=true; // our own markups are drawn by the app, not by pdf.js (see stripOwnAnnots)
+    const stripped=changed?await doc.save(SAVE_OPTS):null;
     return {layout:lay,flat:Array.from(flat),annotations:ann,stripped};
   }
 };

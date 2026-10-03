@@ -40,7 +40,7 @@ async function deepImport(tab){
     Object.keys(lay).forEach(k=>{ if(!L[k]) L[k]=lay[k]; }); // never overwrite anything the user has already done meanwhile
     Object.keys(ann).forEach(n=>{ const cur=A[n]; if(!cur||Object.values(cur).every(a=>!a.length)) A[n]=ann[n]; });
     tab.flatPages=flat; if(active) flatPages=flat;
-    if(r.stripped){ // a saved watermark is a content stream: the worker lifted it out so it is drawn (and editable) as an overlay
+    if(r.stripped){ // the worker lifted out what the app draws itself (its own markups, a saved watermark), so pdf.js shows only the rest
       const nb=r.stripped;
       if(active){ await reloadWorkingDoc(nb,flat); historyStack=[]; redoStack=[]; updateHistBtns(); await renderPage(); await renderPagePanel(); } // (earlier undo points hold the un-stripped file)
       else { tab.originalBytes=nb; tab.pdfDoc=await pdfjsLib.getDocument({data:nb.slice()}).promise; }
