@@ -43,6 +43,18 @@ You can also open `index.html` directly from disk. The app works, but the browse
 
 The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf-lib](https://pdf-lib.js.org/) 1.17.1) and the signature fonts are bundled in [`vendor/`](vendor) with their licenses, so the app works fully offline and makes no network requests. To update one, replace the file in `vendor/` and keep its name.
 
+
+## Desktop app (Electron)
+
+The same app also runs as a desktop program (work in progress: the installer and `.exe` build come next).
+
+```bash
+npm install          # first time only
+npm start            # open Gigabeam in its own window
+npm run smoke        # quick self-test of the desktop pieces (prints a report, then exits)
+```
+
+`electron/main.js` is the shell (window, native Open / Save dialogs, single window with files passed to it, asking about unsaved tabs before closing) and `electron/preload.js` gives the page its small file-access interface, `window.gigabeam` (described at the top of `js/platform.js`). In the desktop app Save writes straight to the file you opened, after asking once if it already exists.
 ### Keyboard shortcuts
 
 | Key | Action | Key | Action |
@@ -104,6 +116,7 @@ The app is plain JavaScript (no framework, no bundler). The files are ordinary s
 | `layout-dialog.js` | the tabbed Page layout dialog for those three |
 | `protect.js` | PDF encryption (AES-256) and decryption (AES-256, AES-128, RC4); Web Crypto plus a small MD5 / RC4; also runs in the background worker |
 | `protect-ui.js` | the password dialog, the prompt when opening a protected file, tab lock mark |
+| `../electron/` | the desktop shell: `main.js` (window, dialogs, files) and `preload.js` (the interface the page may use) |
 | `tips.js` | live tool name in the options bar and the 1.5-second name tag on buttons |
 | `ocr.js` | text recognition (Tesseract.js) and writing the recognized text into the saved PDF |
 | `text.js` | the selectable text layer, the Select text tool, and Find |

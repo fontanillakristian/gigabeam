@@ -1,0 +1,21 @@
+{
+  "name": "gigabeam",
+  "productName": "Gigabeam",
+  "version": "0.1.0",
+  "description": "A fast, private PDF viewer and markup editor.",
+  "main": "electron/main.js",
+  "author": "Kristian Carl B. Fontanilla",
+  "license": "GPL-3.0-or-later",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "smoke": "electron . --smoke"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}
