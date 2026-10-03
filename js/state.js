@@ -1,5 +1,5 @@
 /* state.js - Global constants, DOM references and application state shared by every other script. */
-pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdf.worker.min.js";
 const SVGNS = "http://www.w3.org/2000/svg";
 const $ = id => document.getElementById(id);
 const openBtn=$('open-btn'),fileInput=$('file-input'),colorPick=$('color-pick'),

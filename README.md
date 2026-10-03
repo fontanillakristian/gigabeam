@@ -35,7 +35,7 @@ python -m http.server 8080     # Python
 
 You can also open `index.html` directly from disk. The app works, but the browser blocks it from loading `assets/icons/*.svg`, so it falls back to the built-in icon set (see below).
 
-The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf-lib](https://pdf-lib.js.org/) 1.17.1) and the signature fonts load from public CDNs (the two libraries are pinned with integrity hashes, so update those if you change versions), so an internet connection is needed on first use. To run fully offline, download those files and change the `src` attributes in `index.html` (and the pdf.js worker path at the top of `js/state.js`).
+The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf-lib](https://pdf-lib.js.org/) 1.17.1) and the signature fonts are bundled in [`vendor/`](vendor) with their licenses, so the app works fully offline and makes no network requests. To update one, replace the file in `vendor/` and keep its name.
 
 ### Keyboard shortcuts
 
@@ -56,6 +56,7 @@ assets/icons/           one SVG per UI icon, plus icons.json (the list)
 js/boot.js              start-up: builds the icon sprite, then loads the scripts below in order
 js/icons-fallback.js    built-in copy of the icons, used only if the icon files can't be fetched
 js/*.js                 the application (see "Code structure")
+vendor/                 bundled third-party libraries and fonts, with their licenses
 tools/                  helper scripts
 ```
 
