@@ -380,3 +380,22 @@ body.textsel .pg-stage{cursor:text;}
 /* background task cancel */
 #bg-cancel{height:20px;padding:0 8px;border-radius:var(--r);background:var(--c-raise);color:var(--c-text);font-size:11px;}
 #bg-cancel:hover{background:rgba(229,72,77,.25);}
+
+/* empty text boxes (e.g. form blanks): a faint tint on screen only, so they can be found and filled in */
+.ann.empty{background-color:rgba(47,140,255,.07)!important;border-color:rgba(47,140,255,.35);}
+
+/* Detect form fields: suggestions under review */
+.detect-layer{position:absolute;inset:0;pointer-events:none;z-index:4;}
+.dsug{position:absolute;border:1.5px dashed #f0a020;background:rgba(240,160,32,.13);border-radius:2px;pointer-events:auto;cursor:default;line-height:1;}
+.dsug.checkbox{border-color:#2fb36b;background:rgba(47,179,107,.15);}
+.dsug .dtag{position:absolute;left:-1px;top:-15px;height:13px;padding:0 4px;border-radius:3px 3px 0 0;background:#f0a020;color:#1b1c1f;font:700 9px/13px system-ui,sans-serif;}
+.dsug.checkbox .dtag{background:#2fb36b;}
+.dsug .dact{position:absolute;right:-1px;top:-17px;display:none;gap:2px;}
+.dsug:hover .dact{display:flex;} .dsug:hover{background:rgba(240,160,32,.25);}
+.dsug .dact button{width:16px;height:16px;padding:0;border-radius:3px;background:var(--c-chrome);color:var(--c-text);border:1px solid var(--c-line);font-size:10px;line-height:1;display:grid;place-items:center;}
+.dsug .dact .ok:hover{background:#2fb36b;color:#fff;} .dsug .dact .no:hover{background:var(--c-danger);color:#fff;}
+#detect-bar{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;gap:8px;padding:7px 8px 7px 14px;background:var(--c-chrome);border:1px solid var(--c-line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.5);color:var(--c-text);white-space:nowrap;}
+#detect-bar[hidden]{display:none;}
+#detect-msg span{color:var(--c-faint);}
+#detect-bar button{height:26px;padding:0 11px;border-radius:var(--r);background:var(--c-raise);color:var(--c-text);font-size:11.5px;}
+#detect-bar button:hover{background:#42434a;} #detect-bar button.primary{background:var(--c-accent);color:#fff;font-weight:600;} #detect-bar button.primary:hover{background:var(--c-accent-hi);}

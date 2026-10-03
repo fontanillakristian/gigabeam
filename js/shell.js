@@ -88,6 +88,7 @@ const COMMANDS=[
   ['Document','Header & footer…','',needDoc(headerFooterDialog)],['Document','Page numbers…','',needDoc(pageNumbersDialog)],['Document','Watermark…','',needDoc(watermarkDialog)],['Document','Bookmark this page','',needDoc(()=>addBookmark(false))],['Document','Unflatten…','',needDoc(unflattenDialog)],
   ['Markup','Text','T',tl('text')],['Markup','Callout','C',tl('callout')],['Markup','Line','L',tl('line')],['Markup','Rectangle','R',tl('rect')],['Markup','Ellipse','E',tl('ellipse')],
   ['Markup','Polygon','',tl('polygon')],['Markup','Polyline','',tl('polyline')],['Markup','Revision cloud','',tl('cloud')],['Markup','Highlighter','Shift+H',tl('highlighter')],
+  ['Forms','Detect form fields…','',needDoc(detectDialog)],['Forms','-'],
   ['Forms','Checkbox','',tl('checkbox')],['Forms','Radio button','',tl('radio')],['Forms','Dropdown','',tl('dropdown')],['Forms','-'],['Forms','Reset all fields','',needDoc(resetAllFields)],
   ['Measure','Calibrate scale','',tl('scale')],['Measure','Measure length','',tl('measure-length')],['Measure','Measure area','',tl('measure-area')],
   ['Tools','Select / Move','V',tl('select')],['Tools','Pan','H',tl('pan')],['Tools','Select text','X',tl('textselect')],['Tools','-'],

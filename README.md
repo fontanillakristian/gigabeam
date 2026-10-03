@@ -13,6 +13,7 @@ Built for drawings and plan sets, but it works on any PDF.
 - **OCR:** recognize the text of scanned pages (Document > Recognize text), offline, English. Saving writes it into the PDF as invisible text, so the file becomes searchable anywhere.
 - **Other programs' markups and form fields** are shown and kept when saving.
 - **Forms:** checkbox, radio button and dropdown fields (real AcroForm fields), editable in a tabbed Properties panel and fillable in place.
+- **Detect form fields** (Forms > Detect fields): finds the blanks of a non-fillable form (lines, underscores, empty boxes and table cells, small squares) and suggests blank text boxes and checkboxes, named from nearby labels. You review the suggestions first. Works on scanned forms too (run OCR first for best results).
 - **Document tools:** rotate, crop, insert / delete / reorder pages, insert another PDF.
 - **Page numbers, header & footer, watermark** (text or image, over / blend / behind the page).
 - **Bookmarks:** read from and written to the PDF outline.
@@ -101,6 +102,7 @@ The app is plain JavaScript (no framework, no bundler). The files are ordinary s
 | `layout-dialog.js` | the tabbed Page layout dialog for those three |
 | `ocr.js` | text recognition (Tesseract.js) and writing the recognized text into the saved PDF |
 | `text.js` | the selectable text layer, the Select text tool, and Find |
+| `detect.js` | Detect form fields: reads lines, boxes and text (or the page image on scans) and shows suggestions for review |
 | `core.js` | the heavy PDF work (save, print, page operations, flatten, inspect) as plain functions |
 | `worker-api.js` | `heavy()`: runs a `core.js` function in the background worker, or on the main thread if no worker is available |
 | `pdf-worker.js` | the worker; loads pdf-lib and the same app scripts against a stubbed DOM |
@@ -126,6 +128,7 @@ Current versions of Chrome, Edge, Firefox and Safari.
 - "Behind page content" watermarks are hidden by opaque scanned pages; use "Blend with page" for scans.
 - Touch and pen input has been tested with simulated events only, not on real devices.
 - Saved annotations and form fields have been checked with pdf.js only, not Acrobat or Bluebeam.
+- Field detection is a best guess: expect to discard a few suggestions and add a few by hand, especially on dense or skewed scans and on drawing sheets.
 - OCR is English only and does not read handwriting. Text pages take about 3–5 seconds each; dense drawing sheets 20–60 seconds. Words it is unsure of (under 40% confidence) are left out. Other programs' markups and form fields are shown and kept, but can't be edited here.
 
 ## License

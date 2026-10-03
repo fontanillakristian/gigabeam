@@ -259,7 +259,7 @@ function selectTextNode(n,idx){ setSelected({page:n,arrName:'texts',idx}); }
 function renderTextNode(n,a,idx){
   const v=pageViews[n-1], W=v.w, H=v.h;
   const sel=isSel(n,'texts',idx);
-  const node=document.createElement('div'); node.className='ann'+(sel?' sel':''); node.dataset.idx=idx;
+  const node=document.createElement('div'); node.className='ann'+(sel?' sel':'')+(a.text?'':' empty'); node.dataset.idx=idx; // (an empty box gets a faint on-screen tint so it can be found and filled in)
   const tc=a.textColor||a.color, bw=a.borderW>0?a.borderW*scale:0;
   node.style.left=(a.fx*W)+'px'; node.style.top=(a.fy*H)+'px'; node.style.color=tc;
   node.style.background=a.bg?(a.bgColor||'#ffffff'):'transparent';
@@ -267,7 +267,7 @@ function renderTextNode(n,a,idx){
   if(a.boxW){ node.style.width=(a.boxW*W)+'px'; node.style.height=(a.boxH*H)+'px'; }
   const ta=document.createElement('textarea'); ta.value=a.text; ta.style.color=tc; ta.style.fontSize=(a.size*scale)+'px'; ta.style.textAlign=effAlign(a,W,H);
   if(!a.boxW){ ta.rows=1; ta.style.width='auto'; }
-  ta.addEventListener('input',()=>{ markDirty(); a.text=ta.value; if(!a.boxW){ autoGrow(ta); if(a.leader) buildSvg(n); } });
+  ta.addEventListener('input',()=>{ markDirty(); a.text=ta.value; node.classList.toggle('empty',!ta.value); if(!a.boxW){ autoGrow(ta); if(a.leader) buildSvg(n); } });
   ta.addEventListener('mousedown',()=>{ drawPage=n; if(!isSel(n,'texts',idx)) selectTextNode(n,idx); });
   node.appendChild(ta); if(!a.boxW) requestAnimationFrame(()=>autoGrow(ta));
   node.addEventListener('mousedown',e=>{

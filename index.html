@@ -78,6 +78,7 @@
     <button class="tb tool wide-lbl" data-tool="radio" data-tip="Radio button: consecutive buttons join one group" disabled><svg class="i"><use href="#i-radio"/></svg>Radio</button>
     <button class="tb tool wide-lbl" data-tool="dropdown" data-tip="Dropdown list: click or drag on the page" disabled><svg class="i"><use href="#i-dropdown"/></svg>Dropdown</button>
     <span class="sep"></span>
+    <button class="tb rib-btn wide-lbl" id="detect-btn" data-tip="Find the blanks of a form and suggest text boxes and checkboxes" disabled><svg class="i"><use href="#i-detect"/></svg>Detect fields</button>
     <button class="tb rib-btn wide-lbl" id="reset-fields-btn" data-tip="Reset every form field to its default value" disabled><svg class="i"><use href="#i-undo"/></svg>Reset fields</button>
     <span class="sep"></span>
     <span class="chip">Click or drag on the page to place a field, then edit it in <b>Properties</b></span>
@@ -148,6 +149,7 @@
 
   <div id="canvas-wrap">
     <div id="find-bar" hidden><svg class="i sm"><use href="#i-search"/></svg><input id="find-input" placeholder="Find in document" aria-label="Find in document" autocomplete="off"><span id="find-count"></span><label class="find-case" title="Match case"><input type="checkbox" id="find-case">Aa</label><button id="find-prev" class="icon-btn" title="Previous (Shift+Enter)"><svg class="i sm"><use href="#i-up"/></svg></button><button id="find-next" class="icon-btn" title="Next (Enter)"><svg class="i sm"><use href="#i-chev"/></svg></button><button id="find-close" class="icon-btn" title="Close (Esc)"><svg class="i sm"><use href="#i-x"/></svg></button></div>
+    <div id="detect-bar" hidden><span id="detect-msg"></span><button id="detect-page">Add on this page</button><button id="detect-all" class="primary">Add all</button><button id="detect-clear">Discard</button></div>
     <main id="main">
       <div class="empty" id="empty-msg">
         <div class="badge-i"><svg class="i"><use href="#i-pages"/></svg></div>

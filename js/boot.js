@@ -27,6 +27,7 @@
     'js/layout-dialog.js',
     'js/ocr.js',
     'js/text.js',
+    'js/detect.js',
     'js/core.js',
     'js/worker-api.js',
     'js/shell.js',
