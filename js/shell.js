@@ -51,13 +51,16 @@ $('next-btn').onclick=()=>{ if(currentPage<numPages) goToPage(currentPage+1); };
 pageNumInput.addEventListener('change',()=>{ if(!pdfDoc) return; const n=Math.min(numPages,Math.max(1,parseInt(pageNumInput.value,10)||currentPage)); goToPage(n); updatePageIndicator(); });
 pageNumInput.addEventListener('keydown',e=>{ if(e.key==='Enter') pageNumInput.blur(); });
 
-// ---- pan tool
+// ---- panning: the Pan tool with the left button, and the MIDDLE button with any tool (the tool stays selected and nothing is drawn or moved)
 main.addEventListener('mousedown',e=>{
-  if(tool!=='pan'||e.button!==0) return; e.preventDefault();
+  const mid=e.button===1;
+  if(!(mid||(tool==='pan'&&e.button===0))) return;
+  e.preventDefault(); if(mid) e.stopPropagation(); // (capture phase: markups and the drawing tools never see a middle-button press; preventDefault also stops the browser's own auto-scroll)
   const sx=e.clientX, sy=e.clientY, ox=main.scrollLeft, oy=main.scrollTop; document.body.classList.add('panning');
   const mv=ev=>{ main.scrollLeft=ox-(ev.clientX-sx); main.scrollTop=oy-(ev.clientY-sy); };
-  const up=()=>{ removeEventListener('mousemove',mv); removeEventListener('mouseup',up); document.body.classList.remove('panning'); };
-  addEventListener('mousemove',mv); addEventListener('mouseup',up); });
+  const up=ev=>{ if(mid&&ev.button!==1) return; removeEventListener('mousemove',mv); removeEventListener('mouseup',up,true); document.body.classList.remove('panning'); if(mid) ev.stopPropagation(); };
+  addEventListener('mousemove',mv); addEventListener('mouseup',up,true); },true);
+main.addEventListener('auxclick',e=>{ if(e.button===1) e.preventDefault(); },true);
 
 // ---- drag a PDF onto the canvas
 ['dragenter','dragover'].forEach(t=>main.addEventListener(t,e=>{ if(e.dataTransfer&&Array.from(e.dataTransfer.types).includes('Files')){ e.preventDefault(); document.body.classList.add('dropping'); } }));

@@ -4,6 +4,7 @@ const DRAG_TOOLS=['line','rect','ellipse','highlighter','callout','text','areapi
 const CLICK_TOOLS=['scale','measure-length','measure-area','polygon','polyline','cloud'];
 
 function onDown(e){
+  if(e.button!==0) return; // only the left button draws (the middle button pans, see shell.js)
   if(!DRAG_TOOLS.includes(tool) || (tool!=='areapick'&&e.target.closest('.ann'))) return;
   isDragging=true; dragStart=frac(e); dragPts=[dragStart];
 }
@@ -12,6 +13,7 @@ function onMove(e){
   if(CLICK_TOOLS.includes(tool) && pendingPoints.length){ buildSvg(drawPage,previewPending(frac(e))); }
 }
 function onUp(e){
+  if(e.button!==0) return; // a middle / right button release never finishes a drawing
   if(!isDragging) return;
   isDragging=false; const p=frac(e);
   if(tool==='areapick'){ // rectangle picked for Crop / Print area

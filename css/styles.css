@@ -413,3 +413,4 @@ body.textsel .pg-stage{cursor:text;}
 .pp-meter i{display:block;height:100%;width:0;border-radius:2px;background:#e5484d;transition:width .15s,background .15s;}
 .pp-meter i.s2{background:#e8a53a;} .pp-meter i.s3{background:#7bc47f;} .pp-meter i.s4{background:#2fb36b;}
 #pp-gen,#pp-copy,#pp-remove{height:26px;padding:0 10px;border-radius:var(--r);background:var(--c-raise);color:var(--c-text);font-size:11.5px;} #pp-gen:hover,#pp-copy:hover{background:#42434a;} #pp-remove{color:#ff8a8e;} #pp-remove:hover{background:rgba(229,72,77,.22);}
+body.panning #main,body.panning #main *{cursor:grabbing!important;}

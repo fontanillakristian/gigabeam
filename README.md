@@ -60,7 +60,7 @@ npm run smoke        # quick self-test of the desktop pieces (prints a report, t
 | Key | Action | Key | Action |
 | --- | --- | --- | --- |
 | `V` | Select / Move | `Ctrl+O` | Open |
-| `H` | Pan | `Ctrl+S` / `Ctrl+Shift+S` | Save / Save as |
+| `H` | Pan (or hold the middle mouse button and drag, with any tool) | `Ctrl+S` / `Ctrl+Shift+S` | Save / Save as |
 | `X` | Select text | `Ctrl+F` | Find |
 | `T` `C` `L` `R` `E` | Text, Callout, Line, Rectangle, Ellipse | `Ctrl+P` | Print |
 | `Shift+H` | Highlighter | `Ctrl+Z` / `Ctrl+Y` | Undo / Redo |

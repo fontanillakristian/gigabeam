@@ -168,6 +168,8 @@ function updateSelectionOverlay(n){
       hd.style.pointerEvents='all'; hd.style.cursor='nwse-resize'; hd.addEventListener('mousedown',ev=>{ ev.stopPropagation(); (isField?startFieldResize:startImageResize)(n,selected.idx,ev); }); g.appendChild(hd); }
     const mkHandle=(cx,cy,r,cursor,fn,circle)=>{ const hd=circle?svgEl('circle',{cx,cy,r,fill:'var(--accent)',stroke:'#fff','stroke-width':1.5}):svgEl('rect',{x:cx-r,y:cy-r,width:r*2,height:r*2,fill:'var(--accent)',stroke:'#fff','stroke-width':1});
       hd.style.pointerEvents='all'; hd.style.cursor=cursor; hd.addEventListener('mousedown',ev=>{ ev.stopPropagation(); ev.preventDefault(); fn(ev); }); g.appendChild(hd); };
+    if(selected.arrName==='shapes'&&obj.type==='line'){ // a handle on each end of a line: drag either one (hold Shift to snap the angle to 15°)
+      mkHandle(obj.x1*W,obj.y1*H,5.5,'move',ev=>startLineEndDrag(n,selected.idx,1,ev),true); mkHandle(obj.x2*W,obj.y2*H,5.5,'move',ev=>startLineEndDrag(n,selected.idx,2,ev),true); }
     if(obj.points&&(selected.arrName==='measurements'||(selected.arrName==='shapes'&&/^(polygon|polyline|cloud)$/.test(obj.type)))){ // a handle on every corner: drag to reposition it
       obj.points.forEach((pt,vi)=>mkHandle(pt.x*W,pt.y*H,5.5,'move',ev=>startVertexDrag(n,selected.arrName,selected.idx,vi,ev),true)); }
     if(selected.arrName==='shapes'&&(obj.type==='rect'||obj.type==='ellipse')){ // eight handles: corners and edge middles
@@ -425,8 +427,22 @@ function showFmtBar(node,ta,a,n,sync){
     b.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); ta.focus(); pushHistory(); document.execCommand(cmd); sync(); refresh(); });
     bar.appendChild(b); });
   bar.addEventListener('mousedown',e=>{ e.preventDefault(); e.stopPropagation(); });
-  v.stage.appendChild(bar); bar.style.left=node.offsetLeft+'px'; bar.style.top=(node.offsetTop<34?node.offsetTop+node.offsetHeight+4:node.offsetTop-30)+'px'; // above the box (below it if there is no room)
+  v.stage.appendChild(bar);
+  // above the box (below it if there is no room), kept clear of the x delete button (top right) and the resize handle (bottom right): the bar ends well before the box's right edge, hanging out to the left if the box is narrow
+  const bw=bar.offsetWidth, right=node.offsetLeft+node.offsetWidth;
+  const left=Math.max(0,Math.min(node.offsetLeft,right-bw-18)), clash=left+bw>right-8; // clash: a narrow box near the page edge, where the bar cannot get clear of the x button sideways
+  const above=node.offsetTop>=(clash?56:34);
+  bar.style.left=left+'px'; bar.style.top=(above?node.offsetTop-(clash?54:32):node.offsetTop+node.offsetHeight+(clash?26:6))+'px'; // (so it goes higher / lower, clear of the x and the resize handle)
   try{ document.execCommand('styleWithCSS',false,false); }catch(e){} // semantic tags (<b>, <strike>, <sup>…) are what rtRead understands
   fmtBarSel=()=>{ if(document.activeElement===ta) refresh(); }; document.addEventListener('selectionchange',fmtBarSel); refresh();
   fmtBarEl=bar;
+}
+// drag one end (end = 1 or 2) of a line; with Shift the line snaps to the nearest 15 degrees around the other end
+function startLineEndDrag(n,idx,end,e){
+  drawPage=n; const s=pd(n).shapes[idx]; if(!s||s.type!=='line') return; const v=pageViews[n-1]; let hist=false;
+  const mv=ev=>{ if(!hist){ pushHistory(); hist=true; } let p=frac(ev); const ox=end===1?s.x2:s.x1, oy=end===1?s.y2:s.y1;
+    if(ev.shiftKey){ const dx=(p.x-ox)*v.ptsW, dy=(p.y-oy)*v.ptsH, len=Math.hypot(dx,dy), a=Math.round(Math.atan2(dy,dx)/(Math.PI/12))*(Math.PI/12); p={x:Math.min(1,Math.max(0,ox+Math.cos(a)*len/v.ptsW)),y:Math.min(1,Math.max(0,oy+Math.sin(a)*len/v.ptsH))}; }
+    if(end===1){ s.x1=p.x; s.y1=p.y; } else { s.x2=p.x; s.y2=p.y; } buildSvg(n); };
+  const up=()=>{ window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); swallowNextClick(); renderProps(); };
+  window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up);
 }
