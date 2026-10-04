@@ -27,7 +27,8 @@ function showToolName(){
   else{ b.classList.remove('peek'); b.textContent=TOOL_TITLES[tool]||(tool==='areapick'?'Select area':''); }
 }
 let tipFrame=false, tipPoint=null;
-document.addEventListener('mousemove',e=>{
+document.addEventListener('pointermove',e=>{
+  if(e.pointerType!=='mouse') return; // a finger or pen has no "hover": a tap would otherwise leave a name tag behind 1.5 s later
   tipPoint=e; if(tipFrame) return; tipFrame=true;
   requestAnimationFrame(()=>{ tipFrame=false;
     // elementFromPoint also finds disabled buttons (they get no mouse events of their own)

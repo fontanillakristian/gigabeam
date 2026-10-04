@@ -1,6 +1,7 @@
 /* ui.js - Small UI helpers: toast, tool buttons, loading progress, fast pdf-lib parsing, and the background import of this editor's own saved data. */
 function toast(m){ $('toast-msg').textContent=m; $('toast').classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>$('toast').classList.remove('show'),2600); }
-function openProps(){ propsPanel.classList.remove('hidden'); propsBtn.classList.add('on'); if(isNarrow()) hideLeft(); }
+// byUser: the person asked for the panel. On a phone it covers half the page, so it is not popped open by itself after every new markup.
+function openProps(byUser){ if(isPhone()&&!byUser) return; propsPanel.classList.remove('hidden'); propsBtn.classList.add('on'); if(isNarrow()) hideLeft(); }
 function syncSwatch(){ document.querySelector('#color-swatch i').style.background=colorPick.value; }
 $('color-swatch').onclick=()=>colorPick.click(); colorPick.addEventListener('input',syncSwatch);
 $('empty-open').onclick=()=>platform.open();

@@ -13,12 +13,30 @@
      quit()                                                         close the window for real
      addRecent(path), setTitle(text)    (fire and forget)
    In a browser there is no window.gigabeam and the original behaviour is used: a file picker, showSaveFilePicker when available
-   (otherwise a download), and the browser's own "leave this page?" warning. */
+   (otherwise the share sheet on phones and tablets, or a download), and the browser's own "leave this page?" warning. */
 const platform=(()=>{
   const br=()=>window.gigabeam||null; // looked up at call time
   const baseName=p=>String(p||'').split(/[\\/]/).pop();
   const pdfTypes=[{description:'PDF document',accept:{'application/pdf':['.pdf']}}];
   const toFile=r=>{ const f=new File([r.bytes],r.name||baseName(r.path),{type:'application/pdf'}); f.gbPath=r.path; return f; }; // a File that remembers where it came from
+  // Phones and tablets (iOS, Android) have no "Save as" dialog for web pages, but they can hand a file to the share sheet ("Save to Files", AirDrop, mail, Drive...)
+  const canShareFiles=()=>{ try{ return !!(navigator.canShare&&navigator.canShare({files:[new File([''],'x.pdf',{type:'application/pdf'})]})); }catch(e){ return false; } };
+  // The share sheet may only open straight from a tap, and building the PDF takes a moment, so a "ready" dialog asks for that tap.
+  // Resolves {name} when shared or downloaded, null when cancelled.
+  function shareOrDownload(bytes,name,download){
+    return new Promise((res,rej)=>{
+      const file=new File([bytes],name,{type:'application/pdf'}), ov=document.createElement('div'); ov.className='modal-ovl';
+      ov.innerHTML=`<div class="modal-box" role="dialog" aria-modal="true"><div><b>${esc(name)}</b> is ready.<div class="hint" style="margin-top:6px">Share it to save it in Files, AirDrop or email it, or open it in another app.</div></div>`+
+        `<div class="row"><button type="button" data-id="cancel">Cancel</button><button type="button" data-id="dl">Download</button><button type="button" data-id="share" class="primary">Share / Save to Files</button></div></div>`;
+      document.body.appendChild(ov);
+      const btn=id=>ov.querySelector(`[data-id="${id}"]`);
+      btn('share').onclick=()=>{ navigator.share({files:[file],title:name}).then(()=>{ ov.remove(); res({name}); })
+        .catch(err=>{ if(err&&err.name==='AbortError') return; ov.remove(); rej(err); }); }; // closing the share sheet comes back to this dialog
+      btn('dl').onclick=()=>{ ov.remove(); res(download()); };
+      btn('cancel').onclick=()=>{ ov.remove(); res(null); };
+      btn('share').focus();
+    });
+  }
 
   return {
     get isDesktop(){ return !!br(); },
@@ -61,15 +79,19 @@ const platform=(()=>{
         try{ return {handle:await window.showSaveFilePicker({suggestedName:suggested,types:pdfTypes})}; }
         catch(err){ if(err&&err.name==='AbortError') return false; }
       }
+      if(coarse()&&canShareFiles()) return {download:true,share:true}; // phone / tablet: the share sheet (with a plain download as the fallback)
       return {download:true};
     },
-    // Write the bytes to a target from chooseSave(). Resolves to {name, path?} (path is set when it went to a disk path).
+    // Write the bytes to a target from chooseSave(). Resolves to {name, path?} (path is set when it went to a disk path), or null when the user cancelled.
     async write(target,bytes,suggested){
       if(target.path){ await br().writeFile(target.path,bytes); return {name:baseName(target.path),path:target.path}; }
       if(target.handle){ const w=await target.handle.createWritable(); await w.write(bytes); await w.close(); return {name:target.handle.name}; }
-      const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})), link=document.createElement('a'); link.href=url; link.download=suggested;
-      document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
-      return {name:suggested};
+      const download=()=>{
+        const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})), link=document.createElement('a'); link.href=url; link.download=suggested;
+        document.body.appendChild(link); link.click(); link.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000); // (a phone may take a while to pick the download up)
+        return {name:suggested};
+      };
+      return target.share?shareOrDownload(bytes,suggested,download):download();
     },
 
     // ---- window

@@ -40,8 +40,16 @@ function setupObserver(){
       const v=pageViews[(+en.target.dataset.page)-1]; if(!v) return;
       if(en.isIntersecting) renderPageCanvas(v); else releaseCanvas(v);
     });
-  },{root:main,rootMargin:'800px 0px'});
+  },{root:main,rootMargin:coarse()?'400px 0px':'800px 0px'}); // (phones hold fewer painted pages: less memory)
   pageViews.forEach(v=>pageObserver.observe(v.stage));
+}
+// How many bitmap pixels per screen pixel a page is painted with. Touch devices (phones, tablets) have sharp screens, so pages are painted
+// at up to 2x for crisp text, but never with more pixels than PAGE_PX_TOUCH: iOS draws nothing at all for a canvas over ~16.7 million
+// pixels and closes the tab when memory runs out, so a big sheet at high zoom is painted a little softer instead. Elsewhere 1x, as before.
+const PAGE_PX_TOUCH=10e6, PAGE_PX_MAX=60e6;
+function pageDensity(w,h){
+  const want=coarse()?Math.min(2,window.devicePixelRatio||1):1, cap=coarse()?PAGE_PX_TOUCH:PAGE_PX_MAX;
+  return Math.min(want,Math.sqrt(cap/Math.max(1,w*h)));
 }
 async function renderPageCanvas(v){
   if(v.rendered||v.rendering) return;
@@ -49,8 +57,9 @@ async function renderPageCanvas(v){
   try{
     const page=await pdfDoc.getPage(v.num);
     if(tok!==layoutToken) return;
-    v.canvas.width=v.w; v.canvas.height=v.h;
-    await page.render({canvasContext:v.canvas.getContext('2d'), viewport:page.getViewport({scale}), annotationMode:pdfjsLib.AnnotationMode.ENABLE}).promise;
+    const d=pageDensity(v.w,v.h);
+    v.canvas.width=Math.max(1,Math.floor(v.w*d)); v.canvas.height=Math.max(1,Math.floor(v.h*d)); // (its CSS size stays v.w x v.h)
+    await page.render({canvasContext:v.canvas.getContext('2d'), viewport:page.getViewport({scale:scale*v.canvas.width/v.w}), annotationMode:pdfjsLib.AnnotationMode.ENABLE}).promise;
     if(tok===layoutToken) v.rendered=true;
   }catch(e){ /* a page that fails to paint just stays blank */ }
   finally{ v.rendering=false; }
@@ -181,7 +190,7 @@ async function renderPagePanel(){
     pic.appendChild(del);
     pic.insertAdjacentHTML('beforeend','<span class="badge"><svg class="i"><use href="#i-lock"/></svg>Flattened</span>');
     wrap.insertAdjacentHTML('beforeend','<span class="bm"><svg class="i"><use href="#i-bookmark"/></svg></span>');
-    wrap.onclick=e=>{ if(e.shiftKey) thumbSelect(i,'range'); else if(e.ctrlKey||e.metaKey) thumbSelect(i,'toggle'); else{ if(thumbSel.size) thumbSelect(null,'clear'); goToPage(i); } };
+    wrap.onclick=e=>{ if(e.shiftKey) thumbSelect(i,'range'); else if(e.ctrlKey||e.metaKey) thumbSelect(i,'toggle'); else{ if(thumbSel.size) thumbSelect(null,'clear'); goToPage(i); if(isPhone()) hideLeft(); } }; // (on a phone the panel covers the page: get out of the way)
     wrap.addEventListener('dragstart',ev=>{
       thumbDrag=thumbSel.has(i)?Array.from(thumbSel).sort((p,q)=>p-q):[i]; // dragging a selected page carries the whole selection
       ev.dataTransfer.setData('text/plain',String(i)); ev.dataTransfer.effectAllowed='move';

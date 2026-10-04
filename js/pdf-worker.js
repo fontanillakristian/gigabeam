@@ -12,6 +12,7 @@ function makeDummy(){
   });
 }
 self.window=self; self.document=makeDummy(); self.pdfjsLib=makeDummy(); self.innerWidth=1024; self.innerHeight=768;
+self.matchMedia=()=>({matches:false,addEventListener(){},addListener(){}}); // (state.js asks whether this is a phone)
 
 // the app scripts, in the same order as js/boot.js, minus the ones that only drive the UI (boot, shell, touch, init)
 const WORKER_SCRIPTS=['state','utils','documents','pages','overlay','tools','properties','dialogs','export','ui','markups-list','bookmarks','forms','flatten','layout','layout-dialog','ocr','protect','core'];

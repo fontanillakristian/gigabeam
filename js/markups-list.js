@@ -17,14 +17,14 @@ function mkRowClick(e,me){
   if(tool!=='select') setTool('select');
   if(e.shiftKey&&mkAnchor){
     const a=mkRows.findIndex(x=>sameItem(x,mkAnchor)), b=mkRows.findIndex(x=>sameItem(x,me));
-    if(a>=0&&b>=0){ setMultiSelection(mkRows.slice(Math.min(a,b),Math.max(a,b)+1),me); goToPage(me.page); openProps(); return; }
+    if(a>=0&&b>=0){ setMultiSelection(mkRows.slice(Math.min(a,b),Math.max(a,b)+1),me); goToPage(me.page); openProps(true); return; }
   }
   if(e.ctrlKey||e.metaKey){
     let cur=multiItems(); const at=cur.findIndex(x=>sameItem(x,me));
     if(at>=0) cur.splice(at,1); else cur.push(me);
-    mkAnchor=me; setMultiSelection(cur,cur.some(x=>sameItem(x,me))?me:cur[cur.length-1]); openProps(); return;
+    mkAnchor=me; setMultiSelection(cur,cur.some(x=>sameItem(x,me))?me:cur[cur.length-1]); openProps(true); return;
   }
-  mkAnchor=me; goToPage(me.page); setSelected(me); openProps();
+  mkAnchor=me; goToPage(me.page); setSelected(me); openProps(true);
 }
 function refreshMarkups(){
   const host=$('mk-list'); host.innerHTML=''; let count=0; mkRows=[];

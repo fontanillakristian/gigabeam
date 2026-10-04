@@ -183,7 +183,7 @@ undoBtn.onclick=doUndo; redoBtn.onclick=doRedo;
 prevBtn.onclick=()=>{ if(currentPage>1) goToPage(currentPage-1); };
 nextBtn.onclick=()=>{ if(currentPage<numPages) goToPage(currentPage+1); };
 async function setZoom(s){
-  const ns=Math.max(0.5,Math.min(3,s)); if(ns===scale||!pdfDoc) return;
+  const ns=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,s)); if(ns===scale||!pdfDoc) return;
   scale=ns; syncZoomUI();
   const anchor=captureScrollAnchor();
   const ok=await layoutPages(); if(!ok) return;

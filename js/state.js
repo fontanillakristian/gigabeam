@@ -30,4 +30,11 @@ let docs=[], activeDoc=-1; // multi-tab: each doc holds its own file state
 let clipboard=null; // copied text annotation, shared across tabs
 let layoutToken=0, pageObserver=null, suppressClickUntil=0;
 const EMPTY_PAGE={texts:[],shapes:[],paths:[],measurements:[],images:[],fields:[]};
+// Phones get their own layout (body.phone, see shell.js): toolbar at the bottom, one menu button, panels that slide over the page.
+// Portrait phones by width; phones on their side by height (with a touch screen, so a short desktop window keeps the normal layout).
+const PHONE_MQ=matchMedia('(max-width:600px), (max-height:500px) and (pointer:coarse)');
+const isPhone=()=>PHONE_MQ.matches;
+const coarse=()=>matchMedia('(pointer:coarse)').matches; // a finger is the main pointer: bigger grab handles
+const ZOOM_MIN=0.1, ZOOM_MAX=3; // engine scale (1.25 = 100%); the low end lets a whole drawing sheet fit a phone screen
+const fitPad=()=>isPhone()?24:90; // room kept beside a page when fitting it to the window
 let measureCtx=null; try{ measureCtx=document.createElement('canvas').getContext('2d'); }catch(e){}

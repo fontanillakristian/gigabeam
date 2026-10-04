@@ -414,3 +414,73 @@ body.textsel .pg-stage{cursor:text;}
 .pp-meter i.s2{background:#e8a53a;} .pp-meter i.s3{background:#7bc47f;} .pp-meter i.s4{background:#2fb36b;}
 #pp-gen,#pp-copy,#pp-remove{height:26px;padding:0 10px;border-radius:var(--r);background:var(--c-raise);color:var(--c-text);font-size:11.5px;} #pp-gen:hover,#pp-copy:hover{background:#42434a;} #pp-remove{color:#ff8a8e;} #pp-remove:hover{background:rgba(229,72,77,.22);}
 body.panning #main,body.panning #main *{cursor:grabbing!important;}
+
+/* ============ Touch screens (phones and tablets): finger-sized targets, and no controls that only appear on hover ============ */
+.m-only{display:none;}
+html{touch-action:manipulation;}                         /* no double-tap zoom of the whole app */
+@supports (height:100dvh){ body{height:100dvh;} }        /* the visible height on phones, whose browser bars come and go */
+.modal-box{max-width:calc(100vw - 24px);} .modal-box .row{flex-wrap:wrap;}
+@media (pointer:coarse){
+  .tb{width:40px;height:40px;} .tb.wide-lbl{height:40px;}
+  .icon-btn{width:32px;height:32px;}
+  :root{--rail-w:44px;} .rail button{width:38px;height:38px;}
+  .seg button{height:34px;}
+  .ctl{height:30px;} .swatch{width:30px;height:30px;}
+  .pop .mi{padding:10px 12px;}
+  .ann .del,.shape-del-btn{width:28px;height:28px;font-size:16px;} .ann .del{top:-22px;right:-22px;}
+  .ann .rs{width:20px;height:20px;bottom:-10px;right:-10px;}
+  .fmt-bar .fmt{width:34px;height:32px;line-height:32px;}
+  .area-close-btn{width:32px;height:32px;font-size:17px;} .shape-add-btn{width:28px;height:28px;}
+  .tab{height:32px;} .tab .x{width:24px;height:24px;}
+  .bm-row{height:38px;} .mk-row{padding:10px 12px;}
+  .float-nav button{width:38px;height:38px;}
+}
+@media (hover:none){
+  .thumb .sel-chk{display:grid;} .thumb.active .del{display:grid;}
+  .bm-row .acts{display:flex;} .bm-row .pg{display:none;}
+  .dsug .dact{display:flex;}
+}
+
+/* ============ Phones (body.phone, set by shell.js) ============
+   Top bar: menu button + document tabs. Then the options strip (only while a drawing tool is active), the page, the page bar, and the
+   toolbar at the very bottom within thumb reach. The side panels slide over the page: Pages from the left, Properties up from the bottom. */
+body.phone{padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left);}
+body.phone .m-only{display:grid;}
+body.phone #menubar{height:calc(44px + env(safe-area-inset-top));padding:env(safe-area-inset-top) 4px 0;gap:4px;}
+body.phone #menubar .brand,body.phone .menu-item,body.phone .search{display:none;}
+body.phone #m-menu{flex:none;}
+body.phone #tab-bar{flex:1;min-width:0;height:100%;align-items:center;background:none;padding:0;}
+body.phone .tab{border-radius:16px;padding:0 4px 0 12px;max-width:62vw;} body.phone .tab.active::before{display:none;}
+body.phone .tab.active{background:var(--c-raise);}
+/* the menu: every command in one list, dropping from the top bar */
+.pop .mh{padding:12px 12px 4px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--c-faint);}
+.pop.sheet{left:8px!important;right:8px;top:calc(48px + env(safe-area-inset-top))!important;max-height:calc(100% - 120px - env(safe-area-inset-top));overflow-y:auto;min-width:0;padding:0 4px 6px;}
+body.phone .pop .mi small{display:none;}
+body.phone #cmd-pop{left:8px!important;right:8px;}
+/* options strip: only while drawing (colour, line width, text size, scale) */
+body.phone #propbar{display:none;height:44px;gap:12px;scrollbar-width:none;} body.phone #propbar::-webkit-scrollbar{display:none;}
+body.phone.drawing #propbar{display:flex;}
+/* the page area */
+body.phone #rail-left,body.phone #rail-right,body.phone .splitter,body.phone .float-nav{display:none;}
+body.phone #pages-container{padding:12px 12px 40px;gap:12px;}
+body.phone #left-panel{position:absolute;top:0;bottom:0;left:0;width:min(320px,86vw);z-index:30;box-shadow:0 0 28px rgba(0,0,0,.6);}
+body.phone #right-panel{position:absolute;left:0;right:0;bottom:0;top:auto;width:auto;height:min(58%,480px);z-index:30;border-left:0;border-top:1px solid var(--c-line);border-radius:12px 12px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.55);}
+body.phone #props-close svg{transform:rotate(90deg);}
+body.phone #find-bar{left:8px;right:8px;top:8px;} body.phone #find-input{width:auto;flex:1;min-width:0;}
+body.phone #detect-bar{left:8px;right:8px;transform:none;bottom:12px;white-space:normal;flex-wrap:wrap;}
+body.phone #toast{bottom:calc(110px + env(safe-area-inset-bottom));max-width:calc(100vw - 24px);}
+body.phone #pick-banner{top:8px;max-width:calc(100% - 16px);}
+/* page bar: panel buttons, page number, fit and zoom */
+body.phone #status{order:1;height:40px;gap:6px;padding:0 6px;}
+body.phone #status .icon-btn{width:32px;height:32px;}
+body.phone #paper-size,body.phone #coords,body.phone #status .vsep,body.phone #bm-toggle,body.phone #zoom-range,body.phone #zoom-in,body.phone #zoom-out,body.phone #bg-msg{display:none;}
+body.phone #bg-task .bg-bar{width:48px;}
+body.phone .pgnum{height:28px;width:42px;}
+/* toolbar at the bottom; it scrolls sideways, with Save always in view at the right */
+body.phone #toolbar{order:2;height:calc(52px + env(safe-area-inset-bottom));padding:0 0 env(safe-area-inset-bottom) 4px;border-bottom:0;border-top:1px solid var(--c-line);scrollbar-width:none;}
+body.phone #toolbar::-webkit-scrollbar{display:none;}
+body.phone #print-btn,body.phone #paste-btn,body.phone #toolbar .chip{display:none;}
+body.phone #toolbar .sep{margin:0 4px;}
+body.phone #download-btn{position:sticky;right:0;height:52px;border-radius:0;padding:0 14px;margin-left:6px;box-shadow:-8px 0 12px rgba(0,0,0,.35);}
+body.phone #download-btn:disabled{opacity:1;background:var(--c-raise);color:var(--c-faint);}
+body.phone .empty{padding-top:6vh;} body.phone .empty ul{display:none;}

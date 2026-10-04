@@ -24,6 +24,7 @@ Built for drawings and plan sets, but it works on any PDF.
 - **Undo / redo** covers everything: markups, form fields, page numbers, header & footer, watermark, bookmarks, and page operations (delete, insert, reorder, rotate, crop, flatten, unflatten).
 - Works on narrow windows too: the side panels float over the canvas instead of squeezing it.
 - **Touch and pen:** draw, drag and pinch-zoom with a finger or stylus.
+- **Phones:** in a phone's browser (iPhone or Android, upright or sideways) the layout adapts: toolbar at the bottom, one menu button, and the panels slide over the page. Pages are painted sharp for the screen but within the phone's memory limits. Save hands the PDF to the share sheet (Save to Files, AirDrop, email, Drive...).
 - **Unsaved-changes prompt:** closing a tab or the browser asks whether to save first (Save uses the Save As dialog in Chrome/Edge, otherwise it downloads). File > Save PDF as… (Ctrl+Shift+S) always asks where.
 - **Saving and page operations run in a background worker**, so the window stays responsive on big files.
 - Form fields keep a default value separate from the current value, with Reset buttons.

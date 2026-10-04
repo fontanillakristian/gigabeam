@@ -48,8 +48,8 @@ async function openFiles(files){
       catch(err){ hideLoad(); await modalAlert('Could not open '+file.name+': '+err.message); continue; }
       showLoad(file.name,'Checking for saved markups…',40); await tick();
       const deep=await needsDeepRead(buf,doc), bm=await importBookmarks(doc);
-      let scale0=1.25; // big sheets (A3 / ARCH) open fitted to the window width
-      try{ const w=(await doc.getPage(1)).getViewport({scale:1}).width, avail=main.clientWidth-90; if(w*1.25>avail) scale0=Math.min(3,Math.max(0.5,avail/w)); }catch(err){}
+      let scale0=1.25; // big sheets (A3 / ARCH), and any page on a phone, open fitted to the window width
+      try{ const w=(await doc.getPage(1)).getViewport({scale:1}).width, avail=main.clientWidth-fitPad(); if(w*1.25>avail) scale0=Math.min(ZOOM_MAX,Math.max(ZOOM_MIN,avail/w)); }catch(err){}
       const tab={ layout:newLayout(), bookmarks:bm, flatPages:new Set(), name:file.name, pdfDoc:doc, originalBytes:buf, numPages:doc.numPages, currentPage:1,
         scale:scale0, annotations:{}, scaleInfo:null, historyStack:[], redoStack:[], selected:null, deep, path:platform.pathOf(file), protection };
       platform.noteOpened(tab.path); if(protection){ const pm=protection.perms||{}, restricted=pm.print!=='high'||!pm.modify||!pm.copy||!pm.annotate||!pm.assemble; toast(protection.legacy?'Opened. This file used older protection; saving protects it with stronger AES-256 encryption and the same password.':protection.role==='owner'?'Opened with the owner password. Saving keeps the file protected, using that password to open it too.':restricted?'Opened with the open password. Saving keeps the file protected and its restrictions, but this password now also acts as the owner password.':'Password protected. Saving keeps it protected.'); }

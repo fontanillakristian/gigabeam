@@ -66,4 +66,6 @@
   }
   window.addEventListener('pointerup',e=>finish(e,false));
   window.addEventListener('pointercancel',e=>finish(e,true));
+  // iOS Safari zooms the whole app on a pinch outside the pages (toolbars, panels) despite the viewport settings; only the document zooms
+  document.addEventListener('gesturestart',e=>e.preventDefault());
 })();

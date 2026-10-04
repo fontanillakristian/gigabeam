@@ -160,13 +160,14 @@ function updateSelectionOverlay(n){
   if(!selected||selected.page!==n) return;
   const obj=selObj(); if(!obj) return;
   const g=svgEl('g',{class:'sel-layer'}); g.style.pointerEvents='none';
+  const hk=coarse()?1.8:1; // grab handles: finger-sized on touch screens
   if(selected.arrName!=='texts'){
     const pts=obj.points?obj.points:[{x:obj.x1,y:obj.y1},{x:obj.x2,y:obj.y2}];
     const b=bbox(pts), pad=6;
     g.appendChild(svgEl('rect',{x:b.x1*W-pad,y:b.y1*H-pad,width:Math.max(1,(b.x2-b.x1)*W)+pad*2,height:Math.max(1,(b.y2-b.y1)*H)+pad*2,fill:'none',stroke:'var(--accent)','stroke-width':1.5,'stroke-dasharray':'4,3'}));
-    if(selected.arrName==='images'||selected.arrName==='fields'){ const isField=selected.arrName==='fields', hd=svgEl('rect',{x:b.x2*W+pad-5,y:b.y2*H+pad-5,width:10,height:10,fill:'var(--accent)',stroke:'#fff','stroke-width':1});
+    if(selected.arrName==='images'||selected.arrName==='fields'){ const isField=selected.arrName==='fields', hd=svgEl('rect',{x:b.x2*W+pad-5*hk,y:b.y2*H+pad-5*hk,width:10*hk,height:10*hk,fill:'var(--accent)',stroke:'#fff','stroke-width':1});
       hd.style.pointerEvents='all'; hd.style.cursor='nwse-resize'; hd.addEventListener('mousedown',ev=>{ ev.stopPropagation(); (isField?startFieldResize:startImageResize)(n,selected.idx,ev); }); g.appendChild(hd); }
-    const mkHandle=(cx,cy,r,cursor,fn,circle)=>{ const hd=circle?svgEl('circle',{cx,cy,r,fill:'var(--accent)',stroke:'#fff','stroke-width':1.5}):svgEl('rect',{x:cx-r,y:cy-r,width:r*2,height:r*2,fill:'var(--accent)',stroke:'#fff','stroke-width':1});
+    const mkHandle=(cx,cy,r,cursor,fn,circle)=>{ r*=hk; const hd=circle?svgEl('circle',{cx,cy,r,fill:'var(--accent)',stroke:'#fff','stroke-width':1.5}):svgEl('rect',{x:cx-r,y:cy-r,width:r*2,height:r*2,fill:'var(--accent)',stroke:'#fff','stroke-width':1});
       hd.style.pointerEvents='all'; hd.style.cursor=cursor; hd.addEventListener('mousedown',ev=>{ ev.stopPropagation(); ev.preventDefault(); fn(ev); }); g.appendChild(hd); };
     if(selected.arrName==='shapes'&&obj.type==='line'){ // a handle on each end of a line: drag either one (hold Shift to snap the angle to 15°)
       mkHandle(obj.x1*W,obj.y1*H,5.5,'move',ev=>startLineEndDrag(n,selected.idx,1,ev),true); mkHandle(obj.x2*W,obj.y2*H,5.5,'move',ev=>startLineEndDrag(n,selected.idx,2,ev),true); }
@@ -195,7 +196,7 @@ function updateSelectionOverlay(n){
     }
   } else if(obj.leader){
     const geo=calloutGeom(obj,W,H);
-    const handle=svgEl('circle',{cx:geo.tip.x,cy:geo.tip.y,r:6,fill:obj.color,stroke:'#fff','stroke-width':1.5,opacity:0.85});
+    const handle=svgEl('circle',{cx:geo.tip.x,cy:geo.tip.y,r:6*hk,fill:obj.color,stroke:'#fff','stroke-width':1.5,opacity:0.85});
     handle.style.cursor='move'; handle.style.pointerEvents='all';
     handle.addEventListener('mousedown',ev=>{ ev.stopPropagation(); startLeaderDrag(n,selected.idx,ev); });
     g.appendChild(handle); v.svg.appendChild(g);

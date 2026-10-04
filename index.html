@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- maximum-scale stops iOS zooming the whole page when a text field gets focus; pinch-zoom of the document is handled by js/touch.js. viewport-fit: draw under the notch (the bars keep clear of it, see css) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="description" content="A fast, private, in-browser PDF viewer and markup editor for drawings and plan sets: markups, measurements, forms, bookmarks, watermarks and more. Nothing is uploaded.">
 <meta name="theme-color" content="#26272b">
 <title>Gigabeam</title>
@@ -18,6 +19,7 @@
 <!-- The icon sprite is built at start-up from assets/icons/*.svg (see js/boot.js). -->
 <!-- ===== Menu bar ===== -->
 <div id="menubar">
+  <button class="tb m-only" id="m-menu" aria-label="Menu" aria-haspopup="menu"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
   <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span>Gigabeam</div>
   <button class="menu-item" data-menu="File">File</button><button class="menu-item" data-menu="Edit">Edit</button><button class="menu-item" data-menu="View">View</button>
   <button class="menu-item" data-menu="Document">Document</button><button class="menu-item" data-menu="Markup">Markup</button><button class="menu-item" data-menu="Forms">Forms</button><button class="menu-item" data-menu="Measure">Measure</button>
@@ -185,6 +187,7 @@
 
 <!-- ===== Status bar ===== -->
 <div id="status">
+  <button class="icon-btn m-only" id="m-pages" aria-label="Pages, bookmarks and markups"><svg class="i"><use href="#i-pages"/></svg></button>
   <div class="grp">
     <button class="icon-btn" id="prev-btn2" disabled><svg class="i sm"><use href="#i-left"/></svg></button>
     <input class="ctl pgnum" id="page-num" value="" title="Go to page">
@@ -202,10 +205,11 @@
     <button class="icon-btn" id="fit-page" data-tip="Fit page" disabled><svg class="i sm"><use href="#i-fit"/></svg></button>
     <button class="icon-btn" id="fit-width" data-tip="Fit width" disabled><svg class="i sm"><use href="#i-fitw"/></svg></button>
     <button class="icon-btn" id="zoom-out" disabled><svg class="i sm"><use href="#i-minus"/></svg></button>
-    <input class="range zoom-slider" id="zoom-range" type="range" min="40" max="240" step="5" value="100" disabled>
+    <input class="range zoom-slider" id="zoom-range" type="range" min="10" max="240" step="5" value="100" disabled>
     <button class="icon-btn" id="zoom-in" disabled><svg class="i sm"><use href="#i-plus"/></svg></button>
     <span id="zoom-label">100%</span>
   </div>
+  <button class="icon-btn m-only" id="m-props" aria-label="Properties"><svg class="i"><use href="#i-props"/></svg></button>
 </div>
 <input type="file" id="file-input" accept="application/pdf" multiple>
 <div id="toast"><svg class="i sm" style="color:#4cc38a"><use href="#i-check"/></svg><span id="toast-msg"></span></div>

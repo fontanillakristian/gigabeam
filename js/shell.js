@@ -7,7 +7,7 @@ document.querySelectorAll('#mode-tabs button').forEach(b=>b.onclick=()=>{
 // ---- side panels
 let leftView='pages';
 const LEFT_VIEWS={pages:['Pages',pagesBtn],bookmarks:['Bookmarks',$('bookmarks-btn')],markups:['Markups',$('markups-btn')]};
-const isNarrow=()=>innerWidth<=820; // side panels float over the canvas on narrow windows, so only one is open at a time
+const isNarrow=()=>innerWidth<=820||isPhone(); // side panels float over the canvas on narrow windows, so only one is open at a time
 function closeProps(){ propsPanel.classList.add('hidden'); propsBtn.classList.remove('on'); }
 function showLeft(v){ leftView=v; pagesPanel.classList.remove('hidden'); if(isNarrow()) closeProps();
   Object.keys(LEFT_VIEWS).forEach(k=>{ LEFT_VIEWS[k][1].classList.toggle('on',k===v); $('view-'+k).style.display=k===v?'':'none'; });
@@ -16,7 +16,7 @@ function hideLeft(){ pagesPanel.classList.add('hidden'); Object.values(LEFT_VIEW
 function toggleLeft(v){ if(!pagesPanel.classList.contains('hidden')&&leftView===v) hideLeft(); else showLeft(v); }
 Object.keys(LEFT_VIEWS).forEach(k=>{ LEFT_VIEWS[k][1].onclick=()=>toggleLeft(k); });
 $('pages-close').onclick=hideLeft;
-propsBtn.onclick=()=>{ if(propsPanel.classList.contains('hidden')) openProps(); else closeProps(); };
+propsBtn.onclick=()=>{ if(propsPanel.classList.contains('hidden')) openProps(true); else closeProps(); };
 $('props-close').onclick=closeProps;
 [['left-split','left-panel','--left-w',1,150,420],['right-split','right-panel','--right-w',-1,220,480]].forEach(([s,p,v,dir,min,max])=>{
   const sp=$(s); sp.onmousedown=e=>{ e.preventDefault(); const x0=e.clientX, w0=$(p).offsetWidth; sp.classList.add('drag'); document.body.classList.add('resizing');
@@ -27,10 +27,10 @@ $('props-close').onclick=closeProps;
 // ---- zoom + fit (engine scale 1.25 == 100%)
 const zoomRange=$('zoom-range');
 const ZOOM_CTRLS=()=>[zoomOutBtn,zoomInBtn,downloadBtn,printBtn,zoomRange,$('fit-width'),$('fit-page'),$('bm-toggle')];
-function syncZoomUI(){ const p=Math.round(scale/1.25*100); zoomLabel.textContent=p+'%'; zoomRange.value=Math.min(240,Math.max(40,p)); }
+function syncZoomUI(){ const p=Math.round(scale/1.25*100); zoomLabel.textContent=p+'%'; zoomRange.value=Math.min(240,Math.max(10,p)); }
 zoomRange.addEventListener('input',()=>{ zoomLabel.textContent=zoomRange.value+'%'; });
 zoomRange.addEventListener('change',()=>setZoom(+zoomRange.value/100*1.25));
-function fitZoom(mode){ const v=pageViews[currentPage-1]; if(!v) return; let s=(main.clientWidth-90)/v.ptsW; if(mode==='page') s=Math.min(s,(main.clientHeight-64)/v.ptsH); setZoom(s); }
+function fitZoom(mode){ const v=pageViews[currentPage-1]; if(!v) return; let s=(main.clientWidth-fitPad())/v.ptsW; if(mode==='page') s=Math.min(s,(main.clientHeight-(isPhone()?24:64))/v.ptsH); setZoom(s); }
 $('fit-width').onclick=()=>fitZoom('width'); $('fit-page').onclick=()=>fitZoom('page');
 main.addEventListener('wheel',e=>{ if(!e.ctrlKey||!pdfDoc) return; e.preventDefault(); setZoom(scale+(e.deltaY<0?0.125:-0.125)); },{passive:false});
 
@@ -100,7 +100,7 @@ const COMMANDS=[
   ['Help','Keyboard shortcuts','',()=>modalAlert('<b>Shortcuts</b><br>V Select · H Pan · X Select text · T Text · C Callout · L Line · R Rectangle · E Ellipse · Shift+H Highlighter<br>Ctrl+O Open · Ctrl+S Save · Ctrl+Shift+S Save as · Ctrl+F Find · Ctrl+P Print · Ctrl+Z Undo · Ctrl+Y Redo · Ctrl+C / Ctrl+V copy / paste a text box · Ctrl+K search commands · Esc cancel the current tool')],
 ];
 const menuPop=$('menu-pop'), cmdPop=$('cmd-pop');
-function closeMenus(){ menuPop.classList.remove('show'); cmdPop.classList.remove('show'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('open')); }
+function closeMenus(){ menuPop.classList.remove('show','sheet'); cmdPop.classList.remove('show'); document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('open')); }
 function miHTML(c,extra){ return `<div class="mi${c[4]?' off':''}" ${extra||''}><span>${c[1]}</span>${c[4]?'<small>Soon</small>':(c[2]?`<small>${c[2]}</small>`:'')}</div>`; }
 function openMenu(btn){
   const items=COMMANDS.filter(c=>c[0]===btn.dataset.menu);
@@ -126,6 +126,27 @@ cmdIn.addEventListener('keydown',e=>{
   if(e.key==='Enter'){ const i=cmdHits.findIndex(c=>!c[4]); if(i>=0) runHit(i); }
   else if(e.key==='Escape'){ cmdIn.value=''; closeMenus(); cmdIn.blur(); } });
 cmdPop.addEventListener('click',e=>{ const mi=e.target.closest('.mi'); if(mi&&mi.dataset.h!=null) runHit(+mi.dataset.h); });
+
+// ---- phone layout (body.phone; the styles are in the "Phones" section of styles.css)
+// The document tabs move up into the top bar next to a menu button that opens every menu as one scrolling list; the toolbar sits at the
+// bottom, within thumb reach; the side panels slide over the page and are opened from buttons in the bottom bar.
+function openAllMenus(){
+  const groups=[...new Set(COMMANDS.map(c=>c[0]))];
+  menuPop.innerHTML=groups.map(g=>`<div class="mh">${g}</div>`+COMMANDS.filter(c=>c[0]===g&&c[1]!=='-').map(c=>miHTML(c,`data-i="${COMMANDS.indexOf(c)}"`)).join('')).join('');
+  cmdPop.classList.remove('show'); menuPop.classList.add('show','sheet'); menuPop.scrollTop=0;
+}
+$('m-menu').addEventListener('click',e=>{ e.stopPropagation(); if(menuPop.classList.contains('show')) closeMenus(); else openAllMenus(); });
+$('m-pages').onclick=()=>toggleLeft(leftView);
+$('m-props').onclick=()=>propsBtn.click();
+main.addEventListener('pointerdown',()=>{ if(isPhone()&&!pagesPanel.classList.contains('hidden')) hideLeft(); },true); // touching the page puts the pages panel away
+function applyPhone(){
+  const on=isPhone(), was=document.body.classList.contains('phone'); if(on===was) return;
+  document.body.classList.toggle('phone',on); closeMenus();
+  if(on){ $('menubar').insertBefore(tabBar,$('menubar').querySelector('.spacer')); hideLeft(); closeProps(); }
+  else $('toolbar').before(tabBar);
+}
+applyPhone();
+(PHONE_MQ.addEventListener?PHONE_MQ.addEventListener('change',applyPhone):PHONE_MQ.addListener(applyPhone)); // (older Safari only has addListener)
 
 // ---- keyboard shortcuts
 const KEYTOOL={v:'select',h:'pan',x:'textselect',t:'text',c:'callout',l:'line',r:'rect',e:'ellipse'};
