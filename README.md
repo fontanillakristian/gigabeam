@@ -46,7 +46,7 @@ The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf
 
 ### Online version (GitHub Pages)
 
-Every push to `main` publishes the web app to **https://fontanillakristian.github.io/gigabeam/** ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)), which also works in a phone's browser. Only the web app's files are published; PDFs you open there still never leave your device. One-time setup: the repository must be public (or on a paid plan), and **Settings → Pages → Source** must be set to **GitHub Actions**.
+The web app can be published to **https://fontanillakristian.github.io/gigabeam/** (run the workflow by hand from the Actions tab; it is not automatic right now) ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)), which also works in a phone's browser. Only the web app's files are published; PDFs you open there still never leave your device. One-time setup: the repository must be public (or on a paid plan), and **Settings → Pages → Source** must be set to **GitHub Actions**.
 
 
 ## Desktop app (Electron)
