@@ -44,6 +44,10 @@ You can also open `index.html` directly from disk. The app works, but the browse
 
 The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf-lib](https://pdf-lib.js.org/) 1.17.1) and the signature fonts are bundled in [`vendor/`](vendor) with their licenses, so the app works fully offline and makes no network requests. To update one, replace the file in `vendor/` and keep its name.
 
+### Online version (GitHub Pages)
+
+Every push to `main` publishes the web app to **https://fontanillakristian.github.io/gigabeam/** ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)), which also works in a phone's browser. Only the web app's files are published; PDFs you open there still never leave your device. One-time setup: the repository must be public (or on a paid plan), and **Settings → Pages → Source** must be set to **GitHub Actions**.
+
 
 ## Desktop app (Electron)
 
