@@ -1,11 +1,12 @@
 name: Publish the web app (GitHub Pages)
 
-# The browser version is NOT published automatically right now: it only goes up when you run this workflow by hand
-# (Actions tab > "Publish the web app (GitHub Pages)" > Run workflow), to https://fontanillakristian.github.io/gigabeam/
-# To publish on every push again, add this under "on:":   push: { branches: [main] }
+# Every push to main publishes the browser version to https://fontanillakristian.github.io/gigabeam/
 # Only the web app's own files go up (no desktop-app or build files). Everything still runs in the visitor's browser: nothing is uploaded.
 # One-time setup on GitHub: Settings > Pages > Build and deployment > Source: "GitHub Actions".
+# (The phone layout is switched off in the app itself, see PHONE_LAYOUT in js/state.js.)
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

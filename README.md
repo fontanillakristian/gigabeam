@@ -24,7 +24,7 @@ Built for drawings and plan sets, but it works on any PDF.
 - **Undo / redo** covers everything: markups, form fields, page numbers, header & footer, watermark, bookmarks, and page operations (delete, insert, reorder, rotate, crop, flatten, unflatten).
 - Works on narrow windows too: the side panels float over the canvas instead of squeezing it.
 - **Touch and pen:** draw, drag and pinch-zoom with a finger or stylus.
-- **Phones:** in a phone's browser (iPhone or Android, upright or sideways) the layout adapts: toolbar at the bottom, one menu button, and the panels slide over the page. Pages are painted sharp for the screen but within the phone's memory limits. Save hands the PDF to the share sheet (Save to Files, AirDrop, email, Drive...).
+- **Phones (switched off for now):** the phone layout is hidden from visitors; add `?phone=1` to the address to try it, or set `PHONE_LAYOUT` in `js/state.js` to turn it on for everyone. In a phone's browser (iPhone or Android, upright or sideways) the layout adapts: toolbar at the bottom, one menu button, and the panels slide over the page. Pages are painted sharp for the screen but within the phone's memory limits. Save hands the PDF to the share sheet (Save to Files, AirDrop, email, Drive...).
 - **Unsaved-changes prompt:** closing a tab or the browser asks whether to save first (Save uses the Save As dialog in Chrome/Edge, otherwise it downloads). File > Save PDF as… (Ctrl+Shift+S) always asks where.
 - **Saving and page operations run in a background worker**, so the window stays responsive on big files.
 - Form fields keep a default value separate from the current value, with Reset buttons.
@@ -46,7 +46,7 @@ The PDF libraries ([pdf.js](https://mozilla.github.io/pdf.js/) 3.11.174 and [pdf
 
 ### Online version (GitHub Pages)
 
-The web app can be published to **https://fontanillakristian.github.io/gigabeam/** (run the workflow by hand from the Actions tab; it is not automatic right now) ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)), which also works in a phone's browser. Only the web app's files are published; PDFs you open there still never leave your device. One-time setup: the repository must be public (or on a paid plan), and **Settings → Pages → Source** must be set to **GitHub Actions**.
+Every push to `main` publishes the web app to **https://fontanillakristian.github.io/gigabeam/** ([`.github/workflows/pages.yml`](.github/workflows/pages.yml)), which also opens in a phone's browser (with the normal layout for now). Only the web app's files are published; PDFs you open there still never leave your device. One-time setup: the repository must be public (or on a paid plan), and **Settings → Pages → Source** must be set to **GitHub Actions**.
 
 
 ## Desktop app (Electron)
