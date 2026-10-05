@@ -30,6 +30,7 @@ async function layoutPages(){
   });
   main.appendChild(cont);
   if(drawPage>numPages) drawPage=1;
+  applyViewMode();
   setupObserver();
   return true;
 }
@@ -68,9 +69,16 @@ function releaseCanvas(v){
   if(!v.rendered||v.rendering) return;
   v.canvas.width=0; v.canvas.height=0; v.rendered=false;
 }
+// One page at a time: every page keeps its place in pageViews (so the rest of the app is unchanged), but only the current page is shown.
+function applyViewMode(){
+  const single=viewMode==='single';
+  pageViews.forEach(v=>{ v.stage.style.display=(single&&v.num!==currentPage)?'none':''; });
+  document.body.classList.toggle('single-page',single);
+}
 function pageTopInMain(v){ return v.stage.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop; }
 function scrollToPage(n,smooth){
   const v=pageViews[n-1]; if(!v) return;
+  if(viewMode==='single'){ applyViewMode(); main.scrollTop=0; main.scrollLeft=0; return; } // (the page shown is the current one)
   const top=Math.max(0,pageTopInMain(v)-12);
   if(main.scrollTo){ try{ main.scrollTo({top,behavior:smooth?'smooth':'auto'}); return; }catch(e){} }
   main.scrollTop=top;
@@ -96,7 +104,7 @@ main.addEventListener('scroll',()=>{
   requestAnimationFrame(()=>{ scrollTick=false; updateCurrentPageFromScroll(); });
 },{passive:true});
 function updateCurrentPageFromScroll(){
-  if(!pageViews.length) return;
+  if(!pageViews.length||viewMode==='single') return; // (one page at a time: the page only changes by going to another one)
   const mr=main.getBoundingClientRect();
   const probe=mr.top+Math.min(mr.height*0.3,240);
   let best=1;
@@ -169,6 +177,8 @@ let pagePanelToken=0, thumbObserver=null;
 // The thumbnail list is built instantly (empty, correctly-shaped placeholders) and each thumbnail is painted only while it is
 // near the scroll viewport — two at a time — then released again when far away. An 842-page file therefore costs a few
 // milliseconds here instead of rendering every page up front.
+// bitmap width for a thumbnail: sharp on high-resolution screens, never huge
+const thumbPx=()=>Math.min(600,Math.max(160,Math.round(thumbW*Math.min(2,window.devicePixelRatio||1))));
 async function renderPagePanel(){
   if(!pagesList) return;
   const myToken=++pagePanelToken;
@@ -203,7 +213,7 @@ async function renderPagePanel(){
   const queue=[]; let running=0;
   const paint=async w=>{
     w.dataset.state='painting';
-    try{ const page=await pdfDoc.getPage(+w.dataset.n), v0=page.getViewport({scale:1}), tv=page.getViewport({scale:240/v0.width}), c=w.querySelector('canvas');
+    try{ const page=await pdfDoc.getPage(+w.dataset.n), v0=page.getViewport({scale:1}), tv=page.getViewport({scale:thumbPx()/v0.width}), c=w.querySelector('canvas');
       if(myToken!==pagePanelToken) return;
       c.width=Math.floor(tv.width); c.height=Math.floor(tv.height);
       await page.render({canvasContext:c.getContext('2d'),viewport:tv,annotationMode:pdfjsLib.AnnotationMode.ENABLE}).promise;

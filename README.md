@@ -24,6 +24,9 @@ Built for drawings and plan sets, but it works on any PDF.
 - **Undo / redo** covers everything: markups, form fields, page numbers, header & footer, watermark, bookmarks, and page operations (delete, insert, reorder, rotate, crop, flatten, unflatten).
 - Works on narrow windows too: the side panels float over the canvas instead of squeezing it.
 - **Touch and pen:** draw, drag and pinch-zoom with a finger or stylus.
+- **Options bar like Bluebeam's:** it shows the selected markup's color, line thickness, line type, font, size, bold / italic and fill, and changes the markup as you edit (the Properties panel follows). With nothing selected it sets the style of the next markup. Font size and line thickness are boxes you can type in or pick from.
+- **Pages panel:** thumbnail size slider. **Page view:** continuous scroll or one page at a time (button in the status bar, or View menu). Zooming centers on the selected markup, or on the same spot of the same page.
+- With a drawing tool active, the first click away from a selected markup only deselects it; the next click or drag drops a new one. The Properties panel opens itself only once, then stays as you leave it.
 - **Phones (switched off for now):** the phone layout is hidden from visitors; add `?phone=1` to the address to try it, or set `PHONE_LAYOUT` in `js/state.js` to turn it on for everyone. In a phone's browser (iPhone or Android, upright or sideways) the layout adapts: toolbar at the bottom, one menu button, and the panels slide over the page. Pages are painted sharp for the screen but within the phone's memory limits. Save hands the PDF to the share sheet (Save to Files, AirDrop, email, Drive...).
 - **Unsaved-changes prompt:** closing a tab or the browser asks whether to save first (Save uses the Save As dialog in Chrome/Edge, otherwise it downloads). File > Save PDF as… (Ctrl+Shift+S) always asks where.
 - **Saving and page operations run in a background worker**, so the window stays responsive on big files.
@@ -149,6 +152,7 @@ The app is plain JavaScript (no framework, no bundler). The files are ordinary s
 | `core.js` | the heavy PDF work (save, print, page operations, flatten, inspect) as plain functions |
 | `worker-api.js` | `heavy()`: runs a `core.js` function in the background worker, or on the main thread if no worker is available |
 | `pdf-worker.js` | the worker; loads pdf-lib and the same app scripts against a stubbed DOM |
+| `propbar.js` | the options bar: live, two-way editing of the selected markup (or the defaults for the next one) |
 | `touch.js` | touch / pen input: turns pointer events into the mouse-driven tools, pinch zoom |
 | `shell.js` | toolbar tabs, panels, status bar, menus, command search, shortcuts |
 | `init.js` | first paint |

@@ -107,10 +107,17 @@
 
 <!-- ===== Contextual strip ===== -->
 <div id="propbar">
-  <div class="field"><label>Color</label><span class="swatch" id="color-swatch" data-tip="Markup color"><i></i></span><input type="color" id="color-pick" value="#e0362b"></div>
-  <div class="field"><label>Line</label>
-    <select class="ctl" id="width-pick" title="Stroke width"><option value="1">1 px</option><option value="2" selected>2 px</option><option value="4">4 px</option><option value="8">8 px</option></select></div>
-  <div class="field"><label>Text</label><input class="ctl" type="number" id="size-pick" title="Text size" value="12" min="6" max="200"></div>
+  <!-- The controls shown here follow the markup that is selected (and change it as you edit); with nothing selected they set the style
+       of the NEXT markup. The hidden inputs color-pick / width-pick / size-pick hold those defaults (see js/propbar.js). -->
+  <input type="color" id="color-pick" value="#e0362b"><input type="hidden" id="width-pick" value="2"><input type="hidden" id="size-pick" value="12">
+  <div class="field" data-f="color"><label id="pb-color-l">Color</label><span class="swatch" id="color-swatch" data-tip="Color"><i></i></span><input type="color" id="pb-color" value="#e0362b"></div>
+  <div class="field" data-f="line"><label id="pb-line-l">Line</label><span class="combo"><input class="ctl" id="pb-w" inputmode="decimal" autocomplete="off" title="Line thickness: pick one or type any value" value="2"><button type="button" class="cb" tabindex="-1" aria-label="Line thickness list"><svg class="i sm"><use href="#i-chev"/></svg></button></span></div>
+  <div class="field" data-f="lt"><label>Type</label><select class="ctl" id="pb-lt" title="Line type"></select></div>
+  <div class="field" data-f="font"><label>Font</label><select class="ctl" id="pb-font" title="Font"></select></div>
+  <div class="field" data-f="size"><label id="pb-size-l">Size</label><span class="combo"><input class="ctl" id="pb-size" inputmode="decimal" autocomplete="off" title="Font size: pick one or type any value" value="12"><button type="button" class="cb" tabindex="-1" aria-label="Font size list"><svg class="i sm"><use href="#i-chev"/></svg></button></span></div>
+  <div class="field" data-f="fmt"><span class="pbfmt"><button type="button" data-k="bold" title="Bold"><b>B</b></button><button type="button" data-k="italic" title="Italic"><i>I</i></button></span></div>
+  <div class="field" data-f="fill"><label class="chk"><input type="checkbox" id="pb-fillon"><span id="pb-fill-l">Fill</span></label><input type="color" class="pbcolor" id="pb-fillcolor" value="#ffffff" title="Fill color"></div>
+  <span class="chip" id="pb-note" hidden></span>
   <span class="vsep"></span>
   <div class="field"><label>Scale</label>
     <select class="ctl" id="scale-select" title="Scale template (1 inch on a full-size sheet = N feet)" disabled>
@@ -140,6 +147,7 @@
         <button id="insert-pdf-btn"><svg class="i sm"><use href="#i-plus"/></svg>Insert PDF</button>
         <input type="file" id="insert-pdf-input" accept="application/pdf">
       </div>
+      <div class="pg-size" title="Thumbnail size"><svg class="i" style="width:11px;height:11px"><use href="#i-pages"/></svg><input class="range" type="range" id="thumb-size" min="70" max="300" step="2" value="182" aria-label="Thumbnail size"><svg class="i"><use href="#i-pages"/></svg></div>
       <div id="sel-bar" style="display:none"><span id="sel-count">0 selected</span><button id="sel-all">All</button><button id="sel-clear">Clear</button><button id="sel-delete" class="danger"><svg class="i sm"><use href="#i-trash"/></svg>Delete</button></div>
       <div id="pages-list"></div>
     </div>
@@ -202,6 +210,7 @@
   <span id="coords"></span>
   <span class="vsep"></span>
   <div class="grp">
+    <button class="icon-btn" id="view-toggle" data-tip="Page view: continuous scroll" aria-label="Switch between continuous scroll and one page at a time"><svg class="i sm" id="view-ico" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="8" rx="1"/><rect x="7" y="13.5" width="10" height="8" rx="1"/></svg></button>
     <button class="icon-btn" id="fit-page" data-tip="Fit page" disabled><svg class="i sm"><use href="#i-fit"/></svg></button>
     <button class="icon-btn" id="fit-width" data-tip="Fit width" disabled><svg class="i sm"><use href="#i-fitw"/></svg></button>
     <button class="icon-btn" id="zoom-out" disabled><svg class="i sm"><use href="#i-minus"/></svg></button>

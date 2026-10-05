@@ -19,6 +19,8 @@ let pdfDoc=null, originalBytes=null, numPages=0, currentPage=1, scale=1.25;
 // {num, stage, canvas, svg, w, h, ptsW, ptsH, rendered, rendering}
 let pageViews=[];
 let drawPage=1;            // page the current draw / measure gesture belongs to
+let viewMode='continuous'; // 'continuous' (all pages in one scrolling column) or 'single' (one page at a time); see applyViewMode in pages.js
+let thumbW=182;            // width of a page thumbnail in the Pages panel, in px (the slider in that panel)
 let tool='select';
 let annotations={}; // page -> {texts:[],shapes:[],paths:[],measurements:[]}
 let scaleInfo=null;

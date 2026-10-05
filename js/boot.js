@@ -33,6 +33,7 @@
     'js/core.js',
     'js/worker-api.js',
     'js/shell.js',
+    'js/propbar.js',
     'js/touch.js',
     'js/tips.js',
     'js/init.js'

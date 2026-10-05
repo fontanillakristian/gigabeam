@@ -16,13 +16,38 @@ function hideLeft(){ pagesPanel.classList.add('hidden'); Object.values(LEFT_VIEW
 function toggleLeft(v){ if(!pagesPanel.classList.contains('hidden')&&leftView===v) hideLeft(); else showLeft(v); }
 Object.keys(LEFT_VIEWS).forEach(k=>{ LEFT_VIEWS[k][1].onclick=()=>toggleLeft(k); });
 $('pages-close').onclick=hideLeft;
-propsBtn.onclick=()=>{ if(propsPanel.classList.contains('hidden')) openProps(true); else closeProps(); };
-$('props-close').onclick=closeProps;
+propsBtn.onclick=()=>{ propsUserChoice=true; if(propsPanel.classList.contains('hidden')) openProps(true); else closeProps(); }; // (once the person has used the button, the panel never opens by itself again)
+$('props-close').onclick=()=>{ propsUserChoice=true; closeProps(); };
 [['left-split','left-panel','--left-w',1,150,420],['right-split','right-panel','--right-w',-1,220,480]].forEach(([s,p,v,dir,min,max])=>{
   const sp=$(s); sp.onmousedown=e=>{ e.preventDefault(); const x0=e.clientX, w0=$(p).offsetWidth; sp.classList.add('drag'); document.body.classList.add('resizing');
-    const mv=ev=>document.documentElement.style.setProperty(v,Math.min(max,Math.max(min,w0+dir*(ev.clientX-x0)))+'px');
+    const mv=ev=>{ const w=Math.min(max,Math.max(min,w0+dir*(ev.clientX-x0))); document.documentElement.style.setProperty(v,w+'px'); if(v==='--left-w') setThumbSize(w-THUMB_PAD,true); }; // (dragging the pages panel wider also makes the thumbnails bigger)
     const up=()=>{ sp.classList.remove('drag'); document.body.classList.remove('resizing'); removeEventListener('mousemove',mv); removeEventListener('mouseup',up); };
     addEventListener('mousemove',mv); addEventListener('mouseup',up); }; });
+
+// ---- thumbnail size: the slider in the Pages panel (the panel widens or narrows with it; dragging the panel edge moves the slider)
+const THUMB_PAD=34, THUMB_MIN=70, THUMB_MAX=300, thumbSlider=$('thumb-size'); let thumbRepaint=null;
+function setThumbSize(px,fromPanel){
+  thumbW=Math.round(Math.min(THUMB_MAX,Math.max(THUMB_MIN,px))); thumbSlider.value=thumbW;
+  const st=document.documentElement.style; st.setProperty('--thumb-w',thumbW+'px');
+  if(!fromPanel) st.setProperty('--left-w',Math.min(420,Math.max(150,thumbW+THUMB_PAD))+'px');
+  clearTimeout(thumbRepaint); thumbRepaint=setTimeout(()=>{ if(pdfDoc) renderPagePanel(); },350); // repaint sharp at the new size once it settles
+  try{ localStorage.setItem('gb-thumb',String(thumbW)); }catch(e){}
+}
+thumbSlider.addEventListener('input',()=>setThumbSize(+thumbSlider.value));
+{ let saved=0; try{ saved=+localStorage.getItem('gb-thumb'); }catch(e){} if(saved>=THUMB_MIN&&saved<=THUMB_MAX) setThumbSize(saved); }
+
+// ---- page view: continuous scroll, or one page at a time (the choice is remembered)
+function setViewMode(m,quiet){
+  viewMode=m==='single'?'single':'continuous';
+  try{ localStorage.setItem('gb-view',viewMode); }catch(e){}
+  const b=$('view-toggle'), single=viewMode==='single';
+  b.dataset.tip=single?'Page view: one page at a time':'Page view: continuous scroll'; b.classList.toggle('on',single);
+  $('view-ico').innerHTML=single?'<rect x="7" y="4" width="10" height="16" rx="1"/>':'<rect x="7" y="2.5" width="10" height="8" rx="1"/><rect x="7" y="13.5" width="10" height="8" rx="1"/>';
+  if(pdfDoc){ applyViewMode(); scrollToPage(currentPage,false); updatePageIndicator(); }
+  if(!quiet) toast(single?'One page at a time':'Continuous scroll');
+}
+$('view-toggle').onclick=()=>setViewMode(viewMode==='single'?'continuous':'single');
+{ let saved=null; try{ saved=localStorage.getItem('gb-view'); }catch(e){} if(saved==='single') setViewMode('single',true); }
 
 // ---- zoom + fit (engine scale 1.25 == 100%)
 const zoomRange=$('zoom-range');
@@ -30,7 +55,7 @@ const ZOOM_CTRLS=()=>[zoomOutBtn,zoomInBtn,downloadBtn,printBtn,zoomRange,$('fit
 function syncZoomUI(){ const p=Math.round(scale/1.25*100); zoomLabel.textContent=p+'%'; zoomRange.value=Math.min(240,Math.max(10,p)); }
 zoomRange.addEventListener('input',()=>{ zoomLabel.textContent=zoomRange.value+'%'; });
 zoomRange.addEventListener('change',()=>setZoom(+zoomRange.value/100*1.25));
-function fitZoom(mode){ const v=pageViews[currentPage-1]; if(!v) return; let s=(main.clientWidth-fitPad())/v.ptsW; if(mode==='page') s=Math.min(s,(main.clientHeight-(isPhone()?24:64))/v.ptsH); setZoom(s); }
+function fitZoom(mode){ const v=pageViews[currentPage-1]; if(!v) return; let s=(main.clientWidth-fitPad())/v.ptsW; if(mode==='page') s=Math.min(s,(main.clientHeight-(isPhone()?24:64))/v.ptsH); setZoom(s,{pageTop:true}); } // (fit keeps the top of the page in view rather than centring on a markup)
 $('fit-width').onclick=()=>fitZoom('width'); $('fit-page').onclick=()=>fitZoom('page');
 main.addEventListener('wheel',e=>{ if(!e.ctrlKey||!pdfDoc) return; e.preventDefault(); setZoom(scale+(e.deltaY<0?0.125:-0.125)); },{passive:false});
 
@@ -85,6 +110,7 @@ const COMMANDS=[
   ['Edit','Find…','Ctrl+F',needDoc(openFind)],['Edit','-'],
   ['Edit','Paste text box','Ctrl+V',needDoc(pasteClipboard)],['Edit','Delete selection','Del',needDoc(deleteSelected)],
   ['View','Zoom in','',needDoc(()=>zoomInBtn.click())],['View','Zoom out','',needDoc(()=>zoomOutBtn.click())],
+  ['View','Continuous scroll','',()=>setViewMode('continuous')],['View','One page at a time','',()=>setViewMode('single')],['View','-'],
   ['View','Fit width','',needDoc(()=>fitZoom('width'))],['View','Fit page','',needDoc(()=>fitZoom('page'))],['View','Actual size (100%)','',needDoc(()=>setZoom(1.25))],['View','-'],
   ['View','Toggle pages panel','',()=>pagesBtn.click()],['View','Toggle properties panel','',()=>propsBtn.click()],['View','Show markups list','',()=>showLeft('markups')],['View','Show bookmarks','',()=>showLeft('bookmarks')],['View','Show pages panel','',()=>showLeft('pages')],
   ['Document','Rotate pages…','',needDoc(rotateDialog)],['Document','Crop pages…','',needDoc(cropDialog)],['Document','Recognize text (OCR)…','',needDoc(ocrDialog)],['Document','Flatten markups…','',needDoc(flattenDialog)],['Document','-'],

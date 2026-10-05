@@ -3,8 +3,15 @@
 const DRAG_TOOLS=['line','rect','ellipse','highlighter','callout','text','areapick','checkbox','radio','dropdown'];
 const CLICK_TOOLS=['scale','measure-length','measure-area','polygon','polyline','cloud'];
 
+// the default line thickness / text size for the next markup (set in the options bar; any positive number)
+const lineW=()=>{ const n=parseFloat(widthPick.value); return n>0?n:2; };
+const textSz=()=>{ const n=parseFloat(sizePick.value); return n>0?n:12; };
+// With a markup selected, the first click away from it only DESELECTS it; the next click or drag then drops a new markup.
+let deselectedByClick=false;
 function onDown(e){
   if(e.button!==0) return; // only the left button draws (the middle button pans, see shell.js)
+  deselectedByClick=false;
+  if(selected&&tool!=='areapick'&&(DRAG_TOOLS.includes(tool)||CLICK_TOOLS.includes(tool))&&!e.target.closest('.ann')){ setSelected(null); deselectedByClick=true; return; }
   if(!DRAG_TOOLS.includes(tool) || (tool!=='areapick'&&e.target.closest('.ann'))) return;
   isDragging=true; dragStart=frac(e); dragPts=[dragStart];
 }
@@ -32,6 +39,7 @@ function onUp(e){
 window.addEventListener('mouseup',onUp);
 const INTERACTIVE_SVG_TAGS=['line','rect','ellipse','polygon','polyline','text'];
 function onClick(e){
+  if(deselectedByClick){ deselectedByClick=false; return; } // that click was the one that deselected
   if(Date.now()<suppressClickUntil) return;
   if(e.target.closest('.ann')||e.target.closest('.shape-del-btn')||e.target.closest('.area-close-btn')) return;
   const onInteractiveShape=INTERACTIVE_SVG_TAGS.includes(e.target.tagName);
@@ -55,7 +63,7 @@ main.addEventListener('click',e=>{
 });
 
 function previewShape(t,p1,p2,pts){
-  const v=V(), W=v.w,H=v.h, c=colorPick.value, w=parseInt(widthPick.value);
+  const v=V(), W=v.w,H=v.h, c=colorPick.value, w=lineW();
   const wrap=el=>{ el.style.pointerEvents='none'; return el; };
   if(t==='areapick') return wrap(svgEl('rect',{x:Math.min(p1.x,p2.x)*W,y:Math.min(p1.y,p2.y)*H,width:Math.abs(p2.x-p1.x)*W,height:Math.abs(p2.y-p1.y)*H,stroke:'#3b5bfd','stroke-width':2,fill:'rgba(59,91,253,0.12)','stroke-dasharray':'6,4'}));
   if(t==='line') return wrap(svgEl('line',{x1:p1.x*W,y1:p1.y*H,x2:p2.x*W,y2:p2.y*H,stroke:c,'stroke-width':w,'stroke-dasharray':'4,4'}));
@@ -71,7 +79,7 @@ function previewShape(t,p1,p2,pts){
 function previewPending(cur){
   const v=V(), W=v.w,H=v.h, g=svgEl('g',{}); g.style.pointerEvents='none';
   const all=[...pendingPoints, cur];
-  g.appendChild(svgEl('polyline',{points:all.map(pt=>`${pt.x*W},${pt.y*H}`).join(' '),stroke:colorPick.value,'stroke-width':parseInt(widthPick.value),fill:'none','stroke-dasharray':'4,4'}));
+  g.appendChild(svgEl('polyline',{points:all.map(pt=>`${pt.x*W},${pt.y*H}`).join(' '),stroke:colorPick.value,'stroke-width':lineW(),fill:'none','stroke-dasharray':'4,4'}));
   pendingPoints.forEach((pt,i)=>g.appendChild(svgEl('circle',{cx:pt.x*W,cy:pt.y*H,r:(i===0&&tool==='measure-area')?5:3,fill:colorPick.value})));
   return g;
 }
@@ -108,7 +116,7 @@ let typeDefaults={}; // kind -> {extra style fields to seed new objects with}
 
 function finalizeDrag(t,p1,p2,pts){
   if(FORM_TOOLS.includes(t)){ addField(t,p1,p2); return; }
-  const n=drawPage, d=pd(n), c=colorPick.value, w=parseInt(widthPick.value);
+  const n=drawPage, d=pd(n), c=colorPick.value, w=lineW();
   if(t==='line'||t==='rect'||t==='ellipse'){ pushHistory();
     const base={type:t,x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y,color:c,w,arrowSize:0,fill:false,fillColor:c};
     d.shapes.push(Object.assign(base, typeDefaults[t]||{}));
@@ -123,7 +131,7 @@ function finalizeDrag(t,p1,p2,pts){
     // leader naturally attaches to the side facing the arrow tip.
     const bw=0.16, bh=0.055, right=p2.x>=p1.x;
     const fx=Math.max(0,Math.min(1-bw,right?p2.x:p2.x-bw)), fy=Math.max(0,Math.min(1-bh,p2.y-bh/2));
-    const base={fx,fy,boxW:bw,boxH:bh,text:'Note',color:c,textColor:c,size:parseInt(sizePick.value),align:'left',bg:false,bgColor:'#ffffff',
+    const base={fx,fy,boxW:bw,boxH:bh,text:'Note',color:c,textColor:c,size:textSz(),align:'left',bg:false,bgColor:'#ffffff',
       leader:{x:p1.x,y:p1.y},arrowSize:8,legLength:0.03,borderW:1};
     Object.assign(base, typeDefaults.callout||{}); base.leader={x:p1.x,y:p1.y}; base.fx=fx; base.fy=fy; base.boxW=bw; base.boxH=bh;
     d.texts.push(base);
@@ -131,7 +139,7 @@ function finalizeDrag(t,p1,p2,pts){
   else if(t==='text'){ let bw=Math.abs(p2.x-p1.x), bh=Math.abs(p2.y-p1.y);
     if(bw<0.02||bh<0.015){ bw=0.15; bh=0.045; }
     pushHistory();
-    const base={fx:Math.min(p1.x,p2.x),fy:Math.min(p1.y,p2.y),boxW:bw,boxH:bh,text:'Text',color:c,size:parseInt(sizePick.value),align:'left',bg:false,bgColor:'#ffffff',leader:null,borderW:0};
+    const base={fx:Math.min(p1.x,p2.x),fy:Math.min(p1.y,p2.y),boxW:bw,boxH:bh,text:'Text',color:c,size:textSz(),align:'left',bg:false,bgColor:'#ffffff',leader:null,borderW:0};
     Object.assign(base, typeDefaults.text||{}); base.fx=Math.min(p1.x,p2.x); base.fy=Math.min(p1.y,p2.y); base.boxW=bw; base.boxH=bh;
     d.texts.push(base);
     selected={page:n,arrName:'texts',idx:d.texts.length-1}; openProps(); }
@@ -151,7 +159,7 @@ function finishLength(){
   const d0=distPts(pendingPoints[0],pendingPoints[1]);
   const value=scaleInfo?d0/scaleInfo.pointsPerUnit:d0, unit=scaleInfo?scaleInfo.unit:'pt';
   pushHistory();
-  pd(n).measurements.push({type:'length',points:pendingPoints.slice(),value,unit,color:c,w:parseInt(widthPick.value),fontSize:11,textColor:c,arrowSize:8});
+  pd(n).measurements.push({type:'length',points:pendingPoints.slice(),value,unit,color:c,w:lineW(),fontSize:11,textColor:c,arrowSize:8});
   clearPending(true);
   selected={page:n,arrName:'measurements',idx:pd(n).measurements.length-1}; openProps(); renderAll(); renderProps();
 }
@@ -161,7 +169,7 @@ function finishArea(){
   const a0=areaPts(pts);
   const value=scaleInfo?a0/(scaleInfo.pointsPerUnit**2):a0, unit=scaleInfo?scaleInfo.unit+'\u00b2':'pt\u00b2';
   pushHistory();
-  pd(n).measurements.push({type:'area',points:pts,value,unit,color:c,w:parseInt(widthPick.value),fontSize:11,textColor:c});
+  pd(n).measurements.push({type:'area',points:pts,value,unit,color:c,w:lineW(),fontSize:11,textColor:c});
   clearPending(true);
   selected={page:n,arrName:'measurements',idx:pd(n).measurements.length-1}; openProps(); renderAll(); renderProps();
 }
@@ -171,7 +179,7 @@ function finishMultiShape(t){
   const minPts=t==='polyline'?2:3; if(pendingPoints.length<minPts) return;
   const n=drawPage, c=colorPick.value, pts=pendingPoints.slice();
   pushHistory();
-  const base={type:t,points:pts,color:c,w:parseInt(widthPick.value),fill:false,fillColor:c};
+  const base={type:t,points:pts,color:c,w:lineW(),fill:false,fillColor:c};
   if(t==='cloud') base.bump=0.012;
   Object.assign(base, typeDefaults[t]||{}); base.type=t; base.points=pts;
   pd(n).shapes.push(base);

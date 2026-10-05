@@ -23,7 +23,7 @@
     if(!pinch) return; const cont=document.getElementById('pages-container');
     if(cont){ cont.style.transform=''; cont.style.transformOrigin=''; }
     const r=pinch.ratio; pinch=null;
-    if(apply&&pdfDoc&&Math.abs(r-1)>0.03) setZoom(scale*r);
+    if(apply&&pdfDoc&&Math.abs(r-1)>0.03) setZoom(scale*r,{view:true});
   }
 
   main.addEventListener('pointerdown',e=>{

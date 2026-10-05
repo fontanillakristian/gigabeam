@@ -54,7 +54,7 @@ function renderProps(){
   html+=`<button id="p-del" class="primary" style="margin-top:8px;width:100%">Delete</button>`;
   propsBody.innerHTML=html;
   sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-font','fmt-text','fmt-meas','p-align','p-border','p-bg','p-bgcolor']]]);
-  const redraw=()=>{ buildSvg(pg); if(isText) buildTextNodes(pg); };
+  const redraw=()=>{ buildSvg(pg); if(isText) buildTextNodes(pg); if(typeof syncPropbar==='function') syncPropbar(); }; // (the options bar follows the panel)
   const wire=(id,fn,evt='input')=>{ const el=$(id); if(!el) return; let pushed=false;
     el.addEventListener('focus',()=>pushed=false);
     el.addEventListener(evt,()=>{ if(!pushed){ pushHistory(); pushed=true; } fn(el.value); redraw(); }); };
@@ -182,12 +182,37 @@ setToolButtonsDisabled(true);
 undoBtn.onclick=doUndo; redoBtn.onclick=doRedo;
 prevBtn.onclick=()=>{ if(currentPage>1) goToPage(currentPage-1); };
 nextBtn.onclick=()=>{ if(currentPage<numPages) goToPage(currentPage+1); };
-async function setZoom(s){
+// Zooming keeps one spot steady: the middle of the selected markup (which ends up in the middle of the window), or with nothing selected the
+// same spot of the same page, the one in the middle of the window.
+// opts.pageTop: keep the top of the current page in view instead (the Fit buttons). opts.view: ignore the selection (pinch zoom on a touch screen).
+function selectionCenter(){ // {page, x, y} as fractions of the page, or null
+  const o=selected&&selObj(); if(!o) return null; const a=selected.arrName; let x,y;
+  if(a==='texts'){ x=o.fx+(o.boxW||0)/2; y=o.fy+(o.boxH||0)/2; }
+  else if(o.points&&o.points.length){ const b=bbox(o.points); x=(b.x1+b.x2)/2; y=(b.y1+b.y2)/2; }
+  else if(o.x1!=null){ x=(o.x1+o.x2)/2; y=(o.y1+o.y2)/2; }
+  else return null;
+  return {page:selected.page,x,y};
+}
+function zoomFocus(opts){
+  if(opts&&opts.pageTop) return {top:captureScrollAnchor()};
+  const mr=main.getBoundingClientRect(), c=!(opts&&opts.view)&&selectionCenter(), cv=c&&pageViews[c.page-1];
+  if(cv&&cv.stage.offsetParent!==null) return {page:c.page,x:c.x,y:c.y,sx:mr.width/2,sy:mr.height/2};
+  const v=pageViews[currentPage-1]; if(!v) return null;
+  const r=v.stage.getBoundingClientRect(), cl=n=>Math.min(1,Math.max(0,n)), x=cl((mr.left+mr.width/2-r.left)/v.w), y=cl((mr.top+mr.height/2-r.top)/v.h);
+  return {page:currentPage,x,y,sx:r.left+x*v.w-mr.left,sy:r.top+y*v.h-mr.top};
+}
+function applyZoomFocus(f){
+  if(!f) return; if(f.top){ restoreScrollAnchor(f.top); return; }
+  const v=pageViews[f.page-1]; if(!v) return;
+  const mr=main.getBoundingClientRect(), r=v.stage.getBoundingClientRect();
+  main.scrollLeft+=(r.left+f.x*v.w-mr.left)-f.sx; main.scrollTop+=(r.top+f.y*v.h-mr.top)-f.sy;
+}
+async function setZoom(s,opts){
   const ns=Math.max(ZOOM_MIN,Math.min(ZOOM_MAX,s)); if(ns===scale||!pdfDoc) return;
+  const focus=zoomFocus(opts);
   scale=ns; syncZoomUI();
-  const anchor=captureScrollAnchor();
   const ok=await layoutPages(); if(!ok) return;
-  renderAll(); renderProps(); restoreScrollAnchor(anchor);
+  renderAll(); renderProps(); applyZoomFocus(focus);
 }
 zoomInBtn.onclick=()=>setZoom(scale+0.25);
 zoomOutBtn.onclick=()=>setZoom(scale-0.25);
