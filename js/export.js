@@ -93,15 +93,17 @@ async function buildExportBytes(){
         LE:[ aStart?'OpenArrow':'None', aEnd?'OpenArrow':'None' ] }, extra||{}), textFields);
     }
     // Plain polygon / polyline / revision-cloud shapes: solid stroke, optional fill when closed.
-    function linesAnnot(page,pts,color,w,closed,fillColor,textFields,dash){
+    const fillGs=a=>fillAlpha(a)<1, fillRes=a=>({ExtGState:{GSF:{Type:'ExtGState',ca:fillAlpha(a),CA:1}}}); // a fill with opacity < 1 uses the graphics state GSF (constant alpha) inside its appearance
+    const withGs=(a,ops)=>fillGs(a)?[pushGraphicsState(),setGraphicsState('GSF'),...ops,popGraphicsState()]:ops;
+    function linesAnnot(page,pts,color,w,closed,fillColor,textFields,dash,shape){
       const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y), pad=w+3;
       const bx1=Math.min(...xs)-pad, by1=Math.min(...ys)-pad, bx2=Math.max(...xs)+pad, by2=Math.max(...ys)+pad;
       const lp=pts.map(p=>({x:p.x-bx1,y:p.y-by1})), col=rgb(color[0],color[1],color[2]);
       const path=()=>{ const o=[moveTo(lp[0].x,lp[0].y)]; for(let i=1;i<lp.length;i++) o.push(lineTo(lp[i].x,lp[i].y)); if(closed) o.push(closePath()); return o; };
       const ops=[];
-      if(closed&&fillColor){ const fc=rgb(fillColor[0],fillColor[1],fillColor[2]); ops.push(setFillingColor(fc),...path(),fill()); }
+      if(closed&&fillColor){ const fc=rgb(fillColor[0],fillColor[1],fillColor[2]); ops.push(...withGs(shape||{},[setFillingColor(fc),...path(),fill()])); }
       ops.push(pushGraphicsState(),setStrokingColor(col),setLineWidth(w),setLineJoin(LineJoinStyle.Round),setLineCap(dash?LineCapStyle.Butt:LineCapStyle.Round),...(dash?[setDashPattern(dash,0)]:[]),...path(),stroke(),popGraphicsState());
-      const xobjRef=ctxP.register(ctxP.formXObject(ops,{BBox:[0,0,bx2-bx1,by2-by1]}));
+      const xobjRef=ctxP.register(ctxP.formXObject(ops,Object.assign({BBox:[0,0,bx2-bx1,by2-by1]},(closed&&fillColor&&fillGs(shape||{}))?{Resources:fillRes(shape)}:{})));
       const flat=[]; pts.forEach(p=>flat.push(p.x,p.y));
       const dictObj={ Type:'Annot', Subtype:closed?'Polygon':'PolyLine', Rect:[bx1,by1,bx2,by2], Vertices:flat, C:color, BS:dash?{W:w,S:'D',D:dash}:{W:w}, F:4, AP:{N:xobjRef}, CEK:'shape' };
       if(closed&&fillColor) dictObj.IC=fillColor;
@@ -142,9 +144,9 @@ async function buildExportBytes(){
         if(s.type==='line') lineAnnot(page,p1,p2,col,s.w,{arrowEnd:s.arrowSize||0,dash:dashPattern(s)},{CEK:'shape'},{CED:JSON.stringify(s)});
         else if(s.type==='rect'){ const x=Math.min(p1.x,p2.x),y=Math.min(p1.y,p2.y),w=Math.abs(p2.x-p1.x),h=Math.abs(p2.y-p1.y),ib=s.w/2,
             strokeC=rgb(col[0],col[1],col[2]);
-          const ops=[]; if(s.fill){ const fc=hexArr(s.fillColor||s.color); ops.push(setFillingColor(rgb(fc[0],fc[1],fc[2])),rectangle(ib,ib,Math.max(0,w-2*ib),Math.max(0,h-2*ib)),fill()); }
+          const ops=[]; if(s.fill){ const fc=hexArr(s.fillColor||s.color); ops.push(...withGs(s,[setFillingColor(rgb(fc[0],fc[1],fc[2])),rectangle(ib,ib,Math.max(0,w-2*ib),Math.max(0,h-2*ib)),fill()])); }
           const dsh=dashPattern(s); ops.push(pushGraphicsState(),setStrokingColor(strokeC),setLineWidth(s.w),...(dsh?[setDashPattern(dsh,0)]:[]),rectangle(ib,ib,Math.max(0,w-2*ib),Math.max(0,h-2*ib)),stroke(),popGraphicsState());
-          const apRef=ctxP.register(ctxP.formXObject(ops,{BBox:[0,0,w,h]}));
+          const apRef=ctxP.register(ctxP.formXObject(ops,Object.assign({BBox:[0,0,w,h]},(s.fill&&fillGs(s))?{Resources:fillRes(s)}:{})));
           const dictObj={ Type:'Annot', Subtype:'Square', Rect:[x,y,x+w,y+h], C:col, BS:dashPattern(s)?{W:s.w,S:'D',D:dashPattern(s)}:{W:s.w}, F:4, AP:{N:apRef}, CEK:'shape' };
           if(s.fill) dictObj.IC=hexArr(s.fillColor||s.color);
           addAnnot(page,dictObj,{CED:JSON.stringify(s)}); }
@@ -155,16 +157,16 @@ async function buildExportBytes(){
             appendBezierCurve(cx-rx*kap,cy+ry, cx-rx,cy+ry*kap, cx-rx,cy),
             appendBezierCurve(cx-rx,cy-ry*kap, cx-rx*kap,cy-ry, cx,cy-ry),
             appendBezierCurve(cx+rx*kap,cy-ry, cx+rx,cy-ry*kap, cx+rx,cy), closePath()];
-          const ops=[]; if(s.fill){ const fc=hexArr(s.fillColor||s.color); ops.push(setFillingColor(rgb(fc[0],fc[1],fc[2])),...oval(),fill()); }
+          const ops=[]; if(s.fill){ const fc=hexArr(s.fillColor||s.color); ops.push(...withGs(s,[setFillingColor(rgb(fc[0],fc[1],fc[2])),...oval(),fill()])); }
           const dsh=dashPattern(s); ops.push(pushGraphicsState(),setStrokingColor(strokeC),setLineWidth(s.w),...(dsh?[setDashPattern(dsh,0)]:[]),...oval(),stroke(),popGraphicsState());
-          const apRef=ctxP.register(ctxP.formXObject(ops,{BBox:[0,0,w,h]}));
+          const apRef=ctxP.register(ctxP.formXObject(ops,Object.assign({BBox:[0,0,w,h]},(s.fill&&fillGs(s))?{Resources:fillRes(s)}:{})));
           const dictObj={ Type:'Annot', Subtype:'Circle', Rect:[x,y,x+w,y+h], C:col, BS:dashPattern(s)?{W:s.w,S:'D',D:dashPattern(s)}:{W:s.w}, F:4, AP:{N:apRef}, CEK:'shape' };
           if(s.fill) dictObj.IC=hexArr(s.fillColor||s.color);
           addAnnot(page,dictObj,{CED:JSON.stringify(s)}); }
         else if(s.type==='polygon'||s.type==='polyline'||s.type==='cloud'){
           const closed=s.type!=='polyline';
           const pagePts=s.type==='cloud'?puffOutline(s.points,W,H,s.bump,true):s.points.map(pt=>xy(pt.x,pt.y,W,H));
-          linesAnnot(page,pagePts,col,s.w,closed,(closed&&s.fill)?hexArr(s.fillColor||s.color):null,{CED:JSON.stringify(s)},dashPattern(s));
+          linesAnnot(page,pagePts,col,s.w,closed,(closed&&s.fill)?hexArr(s.fillColor||s.color):null,{CED:JSON.stringify(s)},dashPattern(s),s);
         }
       });
       d.paths.forEach(p=>{
@@ -215,7 +217,7 @@ async function buildExportBytes(){
         const lines=rtLayout(a,boxWpt-2*pad,faceOf,clean), fkeys={}, fk=nm=>fkeys[nm]||(fkeys[nm]='F'+(Object.keys(fkeys).length+1));
         let ops=[];
         if(a.bg){ const bgCol=hexArr(a.bgColor||'#ffffff');
-          ops.push(setFillingColor(rgb(bgCol[0],bgCol[1],bgCol[2])), rectangle(boxOffX,boxOffY,boxWpt,boxHpt), fill()); }
+          ops.push(...withGs(a,[setFillingColor(rgb(bgCol[0],bgCol[1],bgCol[2])), rectangle(boxOffX,boxOffY,boxWpt,boxHpt), fill()])); }
         if(bw){ ops.push(pushGraphicsState(),setStrokingColor(lrgb),setLineWidth(bw),rectangle(boxOffX+bw/2,boxOffY+bw/2,boxWpt-bw,boxHpt-bw),stroke(),popGraphicsState()); }
         if(a.leader){
           const lt=bw>0?bw:1.2;
@@ -235,7 +237,7 @@ async function buildExportBytes(){
             if(t.st.st) ops.push(...drawLine({start:{x:lx,y:ly+t.dy+t.size*0.3},end:{x:lx+t.w,y:ly+t.dy+t.size*0.3},thickness:Math.max(0.5,t.size*0.07),color:trgb})); // strikethrough
             lx+=t.w; });
         });
-        const xobj=ctxP.formXObject(ops,{BBox:[0,0,ox2-ox1,oy2-oy1],Resources:{Font:Object.fromEntries(Object.entries(fkeys).map(([nm,k])=>[k,faceOf(nm).ref]))}});
+        const xobj=ctxP.formXObject(ops,{BBox:[0,0,ox2-ox1,oy2-oy1],Resources:Object.assign({Font:Object.fromEntries(Object.entries(fkeys).map(([nm,k])=>[k,faceOf(nm).ref]))},(a.bg&&fillGs(a))?fillRes(a):{})});
         const xobjRef=ctxP.register(xobj);
         const qVal=al==='center'?1:al==='right'?2:0;
         const dictObj={ Type:'Annot', Subtype:'FreeText', Rect:[ox1,oy1,ox2,oy2], Q:qVal, BS:{W:bw}, F:4, AP:{N:xobjRef}, CEK:'text' };

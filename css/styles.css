@@ -514,3 +514,13 @@ body.phone.has-sel #propbar{display:flex;}
 /* ============ Page view button ============ */
 #view-toggle.on{color:var(--c-accent-hi);background:var(--c-accent-soft);}
 body.single-page #pages-container{justify-content:flex-start;}
+
+/* ============ Fill opacity (bar and Properties), Measure tab ============ */
+.pbop{width:64px;flex:none;} .pbop:disabled,.pct .ctl:disabled{opacity:.4;}
+.combo.pct .ctl{width:38px;border-radius:var(--r) 0 0 var(--r);text-align:right;padding:0 4px;}
+.combo.pct .pcts{display:grid;place-items:center;width:18px;height:24px;border:1px solid var(--c-line);border-left:0;background:var(--c-canvas);border-radius:0 var(--r) var(--r) 0;color:var(--c-dim);font-size:11px;}
+.combo.pct:focus-within .pcts{border-color:var(--c-accent);}
+.oprow{display:flex;align-items:center;gap:8px;margin-top:4px;}
+#props-body .oprow input[type=range]{flex:1;min-width:0;margin-top:0;}
+#props-body .oprow input[type=number]{width:62px;margin-top:0;flex:none;}
+.scale-grp{display:none;align-items:center;gap:14px;flex:none;} body.mode-measure .scale-grp{display:flex;}

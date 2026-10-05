@@ -46,14 +46,15 @@ function renderProps(){
   if(isText&&obj.leader) html+=`<label>Leg length (% of page width)<input type="number" id="p-leglen" min="0" max="30" step="1" value="${Math.round((obj.legLength!=null?obj.legLength:0.03)*100)}"></label>`;
   if(isPath) html+=`<label>Opacity<input type="range" id="p-op" min="0.1" max="1" step="0.05" value="${obj.opacity}"></label>`;
   if(isText) html+=`<label style="display:flex;align-items:center;gap:6px;margin-top:12px;"><input type="checkbox" id="p-bg" ${obj.bg?'checked':''} style="width:auto;margin:0;"> Background mask</label>`;
-  if(isText && obj.bg) html+=`<label>Background color<input type="color" id="p-bgcolor" value="${obj.bgColor||'#ffffff'}"></label>`;
+  const opRow=(id,label)=>`<label>${label}<span class="oprow"><input type="range" id="${id}" min="0" max="100" step="1" value="${Math.round(fillAlpha(obj)*100)}"><input type="number" id="${id}n" min="0" max="100" step="1" value="${Math.round(fillAlpha(obj)*100)}"></span></label>`;
+  if(isText && obj.bg) html+=`<label>Background color<input type="color" id="p-bgcolor" value="${obj.bgColor||'#ffffff'}"></label>`+opRow('p-bgop','Background opacity (%)');
   if(isFillableShape) html+=`<label style="display:flex;align-items:center;gap:6px;margin-top:12px;"><input type="checkbox" id="p-fillon" ${obj.fill?'checked':''} style="width:auto;margin:0;"> Fill</label>`;
-  if(isFillableShape && obj.fill) html+=`<label>Fill color<input type="color" id="p-fillcolor" value="${obj.fillColor||obj.color}"></label>`;
+  if(isFillableShape && obj.fill) html+=`<label>Fill color<input type="color" id="p-fillcolor" value="${obj.fillColor||obj.color}"></label>`+opRow('p-fillop','Fill opacity (%)');
   if(isText) html+=`<button id="p-copy" style="margin-top:14px;width:100%">Copy</button>`;
   html+=`<button id="p-setdef" style="margin-top:8px;width:100%">Set as default</button>`;
   html+=`<button id="p-del" class="primary" style="margin-top:8px;width:100%">Delete</button>`;
   propsBody.innerHTML=html;
-  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-font','fmt-text','fmt-meas','p-align','p-border','p-bg','p-bgcolor']]]);
+  sectionProps([['Appearance',['p-color','p-w','p-lt','p-ltscale','p-bump','p-fillon','p-fillcolor','p-fillop','p-op','p-arrow','p-leglen']],['Text',['p-mlabel','p-mlabel-reset','p-mdec','p-textcolor','p-size','p-font','fmt-text','fmt-meas','p-align','p-border','p-bg','p-bgcolor','p-bgop']]]);
   const redraw=()=>{ buildSvg(pg); if(isText) buildTextNodes(pg); if(typeof syncPropbar==='function') syncPropbar(); }; // (the options bar follows the panel)
   const wire=(id,fn,evt='input')=>{ const el=$(id); if(!el) return; let pushed=false;
     el.addEventListener('focus',()=>pushed=false);
@@ -78,6 +79,12 @@ function renderProps(){
   wire('p-leglen', v=>obj.legLength=(parseFloat(v)||0)/100);
   wire('p-op', v=>obj.opacity=parseFloat(v));
   wire('p-bgcolor', v=>obj.bgColor=v);
+  [['p-fillop','p-fillopn'],['p-bgop','p-bgopn']].forEach(([rid,nid])=>{ const r=$(rid), nb=$(nid); if(!r) return; let pushed=false; // opacity: a slider and a number box that follow each other
+    const apply=n=>{ if(!pushed){ pushHistory(); pushed=true; } obj.fillOpacity=n/100; redraw(); };
+    [r,nb].forEach(el=>el.addEventListener('focus',()=>pushed=false)); r.addEventListener('pointerdown',()=>pushed=false);
+    r.addEventListener('input',()=>{ nb.value=r.value; apply(+r.value); });
+    nb.addEventListener('input',()=>{ const n=parseFloat(nb.value); if(n>=0&&n<=100){ r.value=n; apply(n); } });
+    nb.addEventListener('change',()=>{ let n=parseFloat(nb.value); if(isNaN(n)) n=Math.round(fillAlpha(obj)*100); n=Math.min(100,Math.max(0,Math.round(n))); nb.value=n; r.value=n; apply(n); }); });
   wire('p-fillcolor', v=>obj.fillColor=v);
   wire('p-bump', v=>{ const nn=parseFloat(v); obj.bump=(nn>0?nn:1.2)/100; });
   const bgCb=$('p-bg'); if(bgCb) bgCb.addEventListener('change',()=>{ pushHistory(); obj.bg=bgCb.checked; if(obj.bg&&!obj.bgColor) obj.bgColor='#ffffff'; renderAll(); renderProps(); });
@@ -104,6 +111,7 @@ function setAsDefault(arrName,obj){
   if(obj.bg!=null){ extra.bg=obj.bg; extra.bgColor=obj.bgColor; }
   if(obj.fill!=null){ extra.fill=obj.fill; extra.fillColor=obj.fillColor; }
   if(obj.opacity!=null) extra.opacity=obj.opacity;
+  if(obj.fillOpacity!=null) extra.fillOpacity=obj.fillOpacity;
   if(obj.borderW!=null) extra.borderW=obj.borderW;
   if(obj.dash!=null) extra.dash=obj.dash; if(obj.ltScale!=null) extra.ltScale=obj.ltScale;
   if(obj.textColor!=null) extra.textColor=obj.textColor;

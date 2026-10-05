@@ -50,7 +50,7 @@
   </div>
   <span class="sep"></span>
   <div class="seg" id="mode-tabs">
-    <button class="on" data-mode="markup">Markup</button><button data-mode="forms">Forms</button><button data-mode="document">Document</button>
+    <button class="on" data-mode="markup">Markup</button><button data-mode="forms">Forms</button><button data-mode="document">Document</button><button data-mode="measure">Measure</button>
   </div>
   <span class="sep"></span>
 
@@ -65,10 +65,6 @@
     <button class="tb tool" data-tool="polyline" data-tip="Polyline: click each point, then finish" disabled><svg class="i"><use href="#i-polyline"/></svg></button>
     <button class="tb tool" data-tool="cloud" data-tip="Revision Cloud: click each corner, then close it" disabled><svg class="i"><use href="#i-cloud"/></svg></button>
     <button class="tb tool" data-tool="highlighter" data-tip="Highlighter (Shift+H)" disabled><svg class="i"><use href="#i-highlighter"/></svg></button>
-    <span class="sep"></span>
-    <button class="tb tool" data-tool="scale" data-tip="Calibrate Scale" disabled><svg class="i"><use href="#i-scale"/></svg></button>
-    <button class="tb tool" data-tool="measure-length" data-tip="Measure Length" disabled><svg class="i"><use href="#i-length"/></svg></button>
-    <button class="tb tool" data-tool="measure-area" data-tip="Measure Area" disabled><svg class="i"><use href="#i-area"/></svg></button>
     <span class="sep"></span>
     <button class="tb rib-btn" id="image-btn" data-tip="Insert a .jpg or .png" disabled><svg class="i"><use href="#i-image"/></svg></button>
     <input type="file" id="image-input" accept="image/png,image/jpeg">
@@ -101,6 +97,15 @@
     <button class="tb tint" id="unflatten-btn" data-tip="Unflatten (pages flattened with “Allow unflatten later”)" disabled><svg class="i"><use href="#i-unflatten"/></svg></button>
   </div>
 
+  <div class="modeset" data-mode="measure" style="display:none">
+    <button class="tb tool wide-lbl" data-tool="scale" data-tip="Calibrate Scale: click two points a known distance apart, then type that distance" disabled><svg class="i"><use href="#i-scale"/></svg>Calibrate</button>
+    <span class="sep"></span>
+    <button class="tb tool wide-lbl" data-tool="measure-length" data-tip="Measure Length" disabled><svg class="i"><use href="#i-length"/></svg>Length</button>
+    <button class="tb tool wide-lbl" data-tool="measure-area" data-tip="Measure Area" disabled><svg class="i"><use href="#i-area"/></svg>Area</button>
+    <span class="sep"></span>
+    <span class="chip">Set the scale first, then measure</span>
+  </div>
+
   <span class="spacer"></span>
   <button class="btn-primary" id="download-btn" disabled><svg class="i sm"><use href="#i-save"/></svg><span id="save-label">Save PDF</span></button>
 </div>
@@ -116,16 +121,16 @@
   <div class="field" data-f="font"><label>Font</label><select class="ctl" id="pb-font" title="Font"></select></div>
   <div class="field" data-f="size"><label id="pb-size-l">Size</label><span class="combo"><input class="ctl" id="pb-size" inputmode="decimal" autocomplete="off" title="Font size: pick one or type any value" value="12"><button type="button" class="cb" tabindex="-1" aria-label="Font size list"><svg class="i sm"><use href="#i-chev"/></svg></button></span></div>
   <div class="field" data-f="fmt"><span class="pbfmt"><button type="button" data-k="bold" title="Bold"><b>B</b></button><button type="button" data-k="italic" title="Italic"><i>I</i></button></span></div>
-  <div class="field" data-f="fill"><label class="chk"><input type="checkbox" id="pb-fillon"><span id="pb-fill-l">Fill</span></label><input type="color" class="pbcolor" id="pb-fillcolor" value="#ffffff" title="Fill color"></div>
+  <div class="field" data-f="fill"><label class="chk"><input type="checkbox" id="pb-fillon"><span id="pb-fill-l">Fill</span></label><input type="color" class="pbcolor" id="pb-fillcolor" value="#ffffff" title="Fill color"><input class="range pbop" type="range" id="pb-fillop" min="0" max="100" step="1" value="100" title="Fill opacity" aria-label="Fill opacity"><span class="combo pct"><input class="ctl" id="pb-fillopn" inputmode="numeric" autocomplete="off" title="Fill opacity (%): type a number or drag the slider" value="100" aria-label="Fill opacity percent"><span class="pcts">%</span></span></div>
   <span class="chip" id="pb-note" hidden></span>
   <span class="vsep"></span>
-  <div class="field"><label>Scale</label>
+  <div class="scale-grp"><div class="field"><label>Scale</label>
     <select class="ctl" id="scale-select" title="Scale template (1 inch on a full-size sheet = N feet)" disabled>
       <option value="">Scale…</option>
       <option value="10">1" = 10'</option><option value="20">1" = 20'</option><option value="30">1" = 30'</option><option value="40">1" = 40'</option><option value="50">1" = 50'</option>
       <option value="60">1" = 60'</option><option value="70">1" = 70'</option><option value="80">1" = 80'</option><option value="90">1" = 90'</option><option value="100">1" = 100'</option>
     </select></div>
-  <span class="chip" id="scale-label">No scale set</span>
+  <span class="chip" id="scale-label">No scale set</span></div>
   <span class="spacer"></span>
   <span class="chip">Tool: <b id="tool-name">Select / Move</b></span>
 </div>

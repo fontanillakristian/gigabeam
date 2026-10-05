@@ -229,6 +229,10 @@ function dashPattern(o){
 function dashAttr(o){ const p=dashPattern(o); return p?p.map(v=>+(v*scale).toFixed(2)).join(','):null; }
 function applyDash(el,o){ const d=dashAttr(o); if(d){ el.setAttribute('stroke-dasharray',d); el.setAttribute('stroke-linecap','butt'); } }
 
+// ---- fill opacity (shape fills and text-box backgrounds): o.fillOpacity, 0 (clear) to 1 (solid, the default)
+const fillAlpha=o=>{ const v=o&&o.fillOpacity; return (v!=null&&v>=0&&v<=1)?v:1; };
+const cssRgba=(hex,a)=>{ const m=/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex||''); return m?`rgba(${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)},${a})`:hex; };
+
 // ---- measurement labels: the measured value by default; the user can replace it with any text ({value} inserts the live reading)
 function measuredValue(m){ const dp=m.decimals!=null?m.decimals:2; return Number(m.value).toLocaleString('en-US',{minimumFractionDigits:dp,maximumFractionDigits:dp})+' '+m.unit; }
 function measureLabel(m){ return (m.label!=null&&m.label!=='')?String(m.label).replace(/\{value\}/g,measuredValue(m)):measuredValue(m); }

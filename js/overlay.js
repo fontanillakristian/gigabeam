@@ -93,6 +93,7 @@ function buildSvg(n,previewNode){
       const ptStr=drawPts.map(p=>`${p.x},${p.y}`).join(' ');
       const el=svgEl(closed?'polygon':'polyline',{points:ptStr,stroke:s.color,'stroke-width':s.w,'stroke-linejoin':'round','stroke-linecap':'round',
         fill:closed?(s.fill?s.fillColor:(grab('shapes',idx)?'rgba(0,0,0,0.001)':'none')):'none'});
+      if(closed&&s.fill) el.setAttribute('fill-opacity',fillAlpha(s));
       applyDash(el,s); wireEl(el,'shapes',idx,closed?'all':'stroke'); svg.appendChild(el);
       return;
     }
@@ -101,6 +102,7 @@ function buildSvg(n,previewNode){
       el=svgEl('rect',{x,y,width:w,height:h,stroke:s.color,'stroke-width':s.w,fill:s.fill?s.fillColor:(grab('shapes',idx)?'rgba(0,0,0,0.001)':'none')}); }
     else { const cx=(s.x1+s.x2)/2*W,cy=(s.y1+s.y2)/2*H,rx=Math.abs(s.x2-s.x1)/2*W,ry=Math.abs(s.y2-s.y1)/2*H;
       el=svgEl('ellipse',{cx,cy,rx,ry,stroke:s.color,'stroke-width':s.w,fill:s.fill?s.fillColor:(grab('shapes',idx)?'rgba(0,0,0,0.001)':'none')}); }
+    if(s.fill) el.setAttribute('fill-opacity',fillAlpha(s));
     applyDash(el,s); wireEl(el,'shapes',idx,'all'); svg.appendChild(el);
   });
   d.paths.forEach((p,idx)=>{
@@ -268,7 +270,7 @@ function renderTextNode(n,a,idx){
   const node=document.createElement('div'); node.className='ann'+(sel?' sel':'')+(a.text?'':' blank'); node.dataset.idx=idx; // (an empty box gets a faint on-screen tint so it can be found and filled in)
   const tc=a.textColor||a.color, bw=a.borderW>0?a.borderW*scale:0;
   node.style.left=(a.fx*W)+'px'; node.style.top=(a.fy*H)+'px'; node.style.color=tc;
-  node.style.background=a.bg?(a.bgColor||'#ffffff'):'transparent';
+  node.style.background=a.bg?cssRgba(a.bgColor||'#ffffff',fillAlpha(a)):'transparent';
   if(bw){ node.style.boxShadow=`inset 0 0 0 ${bw}px ${a.color}`; node.style.padding=`${1+bw}px ${2+bw}px`; }
   if(a.boxW){ node.style.width=(a.boxW*W)+'px'; node.style.height=(a.boxH*H)+'px'; }
   const ta=document.createElement('div'); ta.className='ta'; ta.contentEditable='true'; ta.spellcheck=false; ta.setAttribute('role','textbox'); ta.setAttribute('aria-multiline','true');

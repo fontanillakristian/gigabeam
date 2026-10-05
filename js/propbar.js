@@ -7,7 +7,7 @@
    Line thickness and size are "combo" boxes: type any number, or pick one from the list. */
 const PB_WIDTHS=[0.5,1,1.5,2,3,4,6,8,10,12,16,20], PB_SIZES=[6,7,8,9,10,11,12,14,16,18,20,24,28,32,36,48,72,96];
 const PB_LT_TOOLS=new Set(['line','rect','ellipse','polygon','polyline','cloud']), PB_FILL_TOOLS=new Set(['rect','ellipse','polygon','cloud']), PB_TEXT_TOOLS=new Set(['text','callout']);
-const pbBar=$('propbar'), pbColor=$('pb-color'), pbW=$('pb-w'), pbSize=$('pb-size'), pbLt=$('pb-lt'), pbFont=$('pb-font'), pbFillOn=$('pb-fillon'), pbFillColor=$('pb-fillcolor'), pbNote=$('pb-note');
+const pbBar=$('propbar'), pbColor=$('pb-color'), pbW=$('pb-w'), pbSize=$('pb-size'), pbLt=$('pb-lt'), pbFont=$('pb-font'), pbFillOn=$('pb-fillon'), pbFillColor=$('pb-fillcolor'), pbFillOp=$('pb-fillop'), pbFillOpN=$('pb-fillopn'), pbNote=$('pb-note');
 pbLt.innerHTML=LINETYPES.map(([k,t])=>`<option value="${k}">${t.replace(/ \(.*/,'')}</option>`).join('');
 pbFont.innerHTML=Object.keys(TEXT_FACES).map(k=>`<option value="${k}">${TEXT_FACES[k].label.replace(/ \(.*/,'')}</option>`).join('');
 const pbField=n=>pbBar.querySelector(`.field[data-f="${n}"]`);
@@ -32,17 +32,17 @@ function syncPropbar(){
     show.color=1; show.line=1;
     val.color=isText?(o.textColor||o.color):o.color; val.line=isText?(o.borderW||0):o.w;
     if(isText){ label.color='Font'; label.line='Border'; show.font=1; show.size=1; show.fmt=1; show.fill=1; label.fill='Fill';
-      val.font=o.fontName||'Helvetica'; val.size=o.size; fmt.bold=!!o.bold; fmt.italic=!!o.italic; val.fillOn=!!o.bg; val.fillColor=o.bgColor||'#ffffff'; }
+      val.font=o.fontName||'Helvetica'; val.size=o.size; fmt.bold=!!o.bold; fmt.italic=!!o.italic; val.fillOn=!!o.bg; val.fillColor=o.bgColor||'#ffffff'; val.fillOp=fillAlpha(o); }
     if(isShape||isMeasure) { show.lt=1; val.lt=o.dash||(t==='area'?'dashed':'solid'); }
     if(isMeasure){ show.size=1; show.fmt=1; val.size=o.fontSize||11; fmt.bold=!!o.bold; fmt.italic=!!o.italic; }
-    if(isShape&&t!=='line'&&t!=='polyline'){ show.fill=1; val.fillOn=!!o.fill; val.fillColor=o.fillColor||o.color; }
+    if(isShape&&t!=='line'&&t!=='polyline'){ show.fill=1; val.fillOn=!!o.fill; val.fillColor=o.fillColor||o.color; val.fillOp=fillAlpha(o); }
   }else if(m.mode==='default'){
     show.color=1; show.line=1; show.size=1;
     val.color=colorPick.value; val.line=widthPick.value; val.size=sizePick.value;
     const td=typeDefaults[tool]||{};
     if(PB_LT_TOOLS.has(tool)){ show.lt=1; val.lt=td.dash||'solid'; }
-    if(PB_TEXT_TOOLS.has(tool)){ show.font=1; show.fmt=1; show.fill=1; val.font=td.fontName||'Helvetica'; fmt.bold=!!td.bold; fmt.italic=!!td.italic; val.fillOn=!!td.bg; val.fillColor=td.bgColor||'#ffffff'; }
-    if(PB_FILL_TOOLS.has(tool)){ show.fill=1; val.fillOn=!!td.fill; val.fillColor=td.fillColor||colorPick.value; }
+    if(PB_TEXT_TOOLS.has(tool)){ show.font=1; show.fmt=1; show.fill=1; val.font=td.fontName||'Helvetica'; fmt.bold=!!td.bold; fmt.italic=!!td.italic; val.fillOn=!!td.bg; val.fillColor=td.bgColor||'#ffffff'; val.fillOp=fillAlpha(td); }
+    if(PB_FILL_TOOLS.has(tool)){ show.fill=1; val.fillOn=!!td.fill; val.fillColor=td.fillColor||colorPick.value; val.fillOp=fillAlpha(td); }
   }else if(m.mode==='multi'){
     const objs=multiItems().map(x=>(pdr(x.page)[x.arrName]||[])[x.idx]).filter(o=>o&&o.color);
     if(objs.length){ show.color=1; val.color=objs[0].color; }
@@ -55,7 +55,8 @@ function syncPropbar(){
   if(show.line) pbSet(pbW,val.line!=null?+(+val.line).toFixed(2):''); if(show.size) pbSet(pbSize,val.size!=null?+(+val.size).toFixed(2):'');
   if(show.lt) pbLt.value=val.lt; if(show.font) pbFont.value=val.font;
   if(show.fmt) pbBar.querySelectorAll('.pbfmt button').forEach(b=>b.classList.toggle('on',!!fmt[b.dataset.k]));
-  if(show.fill){ pbFillOn.checked=!!val.fillOn; pbFillColor.value=val.fillColor; }
+  if(show.fill){ pbFillOn.checked=!!val.fillOn; pbFillColor.value=val.fillColor; const pct=Math.round((val.fillOp!=null?val.fillOp:1)*100);
+    if(document.activeElement!==pbFillOp) pbFillOp.value=pct; pbSet(pbFillOpN,pct); pbFillOp.disabled=pbFillOpN.disabled=!val.fillOn; } // (opacity only means something while the fill is on)
   document.body.classList.toggle('has-sel',m.mode==='obj'||m.mode==='multi'); // (phone layout: show the bar while something is selected)
 }
 syncSwatch=function(){ syncPropbar(); }; // (a default style changed elsewhere, e.g. "Set as default")
@@ -112,5 +113,11 @@ pbBar.querySelectorAll('.pbfmt button').forEach(b=>b.addEventListener('click',()
 pbFillOn.addEventListener('change',()=>pbEdit((o,a,def)=>{ const t=def?pbTd():o, text=def?PB_TEXT_TOOLS.has(tool):a==='texts', on=pbFillOn.checked;
   if(text){ t.bg=on; if(on&&!t.bgColor) t.bgColor=pbFillColor.value||'#ffffff'; }
   else{ t.fill=on; if(on&&!t.fillColor) t.fillColor=def?colorPick.value:o.color; } }));
+// fill opacity: a slider and a number box (0-100 %) that follow each other
+function pbApplyOp(n){ pbEdit((o,a,def)=>{ (def?pbTd():o).fillOpacity=n/100; }); }
+pbFillOp.addEventListener('input',()=>{ pbFillOpN.value=pbFillOp.value; pbApplyOp(+pbFillOp.value); });
+pbFillOpN.addEventListener('input',()=>{ const n=parseFloat(pbFillOpN.value); if(n>=0&&n<=100){ pbFillOp.value=n; pbApplyOp(n); } });
+pbFillOpN.addEventListener('change',()=>{ let n=parseFloat(pbFillOpN.value); if(isNaN(n)){ pbFillOpN.blur(); syncPropbar(); return; } n=Math.min(100,Math.max(0,Math.round(n))); pbFillOpN.value=n; pbFillOp.value=n; pbApplyOp(n); });
+pbFillOpN.addEventListener('keydown',e=>{ if(e.key==='ArrowUp'||e.key==='ArrowDown'){ e.preventDefault(); const n=Math.min(100,Math.max(0,(parseFloat(pbFillOpN.value)||0)+(e.key==='ArrowUp'?1:-1)*(e.shiftKey?10:1))); pbFillOpN.value=n; pbFillOp.value=n; pbApplyOp(n); } else if(e.key==='Enter') pbFillOpN.blur(); });
 pbFillColor.addEventListener('input',()=>pbEdit((o,a,def)=>{ const t=def?pbTd():o, text=def?PB_TEXT_TOOLS.has(tool):a==='texts', v=pbFillColor.value;
   if(text){ t.bg=true; t.bgColor=v; } else{ t.fill=true; t.fillColor=v; } }));

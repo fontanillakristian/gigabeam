@@ -1,8 +1,14 @@
 /* shell.js - Application chrome: toolbar mode tabs, side panels, zoom and status bar, pan tool, drag-and-drop, command menus and search, keyboard shortcuts. Loaded after the feature files because its command table references them. */
 // ---- toolbar mode tabs (Markup / Forms / Document)
-document.querySelectorAll('#mode-tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('#mode-tabs button').forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('.modeset').forEach(g=>g.style.display=g.dataset.mode===b.dataset.mode?'flex':'none'); });
+// The Scale controls in the options bar belong to the Measure tab (body.mode-measure, see the CSS), as do Calibrate / Length / Area.
+const MEASURE_TOOLS=['scale','measure-length','measure-area'];
+function showMode(m){
+  document.querySelectorAll('#mode-tabs button').forEach(x=>x.classList.toggle('on',x.dataset.mode===m));
+  document.querySelectorAll('.modeset').forEach(g=>g.style.display=g.dataset.mode===m?'flex':'none');
+  document.body.classList.toggle('mode-measure',m==='measure');
+}
+document.querySelectorAll('#mode-tabs button').forEach(b=>b.onclick=()=>showMode(b.dataset.mode));
+{ const ut=updateToolButtons; updateToolButtons=function(){ const r=ut.apply(this,arguments); if(MEASURE_TOOLS.includes(tool)) showMode('measure'); return r; }; } // (a measuring tool chosen from the Measure menu or elsewhere opens its tab)
 
 // ---- side panels
 let leftView='pages';
@@ -20,21 +26,22 @@ propsBtn.onclick=()=>{ propsUserChoice=true; if(propsPanel.classList.contains('h
 $('props-close').onclick=()=>{ propsUserChoice=true; closeProps(); };
 [['left-split','left-panel','--left-w',1,150,420],['right-split','right-panel','--right-w',-1,220,480]].forEach(([s,p,v,dir,min,max])=>{
   const sp=$(s); sp.onmousedown=e=>{ e.preventDefault(); const x0=e.clientX, w0=$(p).offsetWidth; sp.classList.add('drag'); document.body.classList.add('resizing');
-    const mv=ev=>{ const w=Math.min(max,Math.max(min,w0+dir*(ev.clientX-x0))); document.documentElement.style.setProperty(v,w+'px'); if(v==='--left-w') setThumbSize(w-THUMB_PAD,true); }; // (dragging the pages panel wider also makes the thumbnails bigger)
+    const mv=ev=>{ const w=Math.min(max,Math.max(min,w0+dir*(ev.clientX-x0))); document.documentElement.style.setProperty(v,w+'px'); if(v==='--left-w') thumbSlider.max=thumbMax(); }; // (the thumbnail slider's range follows the panel's width)
     const up=()=>{ sp.classList.remove('drag'); document.body.classList.remove('resizing'); removeEventListener('mousemove',mv); removeEventListener('mouseup',up); };
     addEventListener('mousemove',mv); addEventListener('mouseup',up); }; });
 
 // ---- thumbnail size: the slider in the Pages panel (the panel widens or narrows with it; dragging the panel edge moves the slider)
-const THUMB_PAD=34, THUMB_MIN=70, THUMB_MAX=300, thumbSlider=$('thumb-size'); let thumbRepaint=null;
-function setThumbSize(px,fromPanel){
-  thumbW=Math.round(Math.min(THUMB_MAX,Math.max(THUMB_MIN,px))); thumbSlider.value=thumbW;
+const THUMB_PAD=34, THUMB_MIN=70, thumbSlider=$('thumb-size'); let thumbRepaint=null;
+// The panel keeps whatever width it has; thumbnails can grow up to its width, so the slider's top end follows the panel (set by dragging its edge).
+const thumbMax=()=>Math.max(THUMB_MIN+20,Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--left-w'))||216)-THUMB_PAD));
+function setThumbSize(px){
+  thumbSlider.max=thumbMax(); thumbW=Math.round(Math.min(thumbMax(),Math.max(THUMB_MIN,px))); thumbSlider.value=thumbW;
   const st=document.documentElement.style; st.setProperty('--thumb-w',thumbW+'px');
-  if(!fromPanel) st.setProperty('--left-w',Math.min(420,Math.max(150,thumbW+THUMB_PAD))+'px');
   clearTimeout(thumbRepaint); thumbRepaint=setTimeout(()=>{ if(pdfDoc) renderPagePanel(); },350); // repaint sharp at the new size once it settles
   try{ localStorage.setItem('gb-thumb',String(thumbW)); }catch(e){}
 }
 thumbSlider.addEventListener('input',()=>setThumbSize(+thumbSlider.value));
-{ let saved=0; try{ saved=+localStorage.getItem('gb-thumb'); }catch(e){} if(saved>=THUMB_MIN&&saved<=THUMB_MAX) setThumbSize(saved); }
+{ let saved=0; try{ saved=+localStorage.getItem('gb-thumb'); }catch(e){} thumbSlider.max=thumbMax(); if(saved>=THUMB_MIN) setThumbSize(saved); }
 
 // ---- page view: continuous scroll, or one page at a time (the choice is remembered)
 function setViewMode(m,quiet){
