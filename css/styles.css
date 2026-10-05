@@ -552,3 +552,11 @@ label .cwell{margin-left:8px;} #props-body label>.cwell{margin-top:6px;display:f
 #props-body .cwell button,.modal-box .cwell button,.fp-color .cwell button{padding:0;min-width:0;}
 #props-body .cwell .cw-main,.modal-box .cwell .cw-main{width:22px;height:22px;border-radius:4px;}
 #props-body .cwell .cw-recent,.modal-box .cwell .cw-recent{width:13px;height:13px;border-radius:3px;}
+
+/* options bar: only the color square (no recent colors, to save room); Properties: the opacity slider takes the full row, the number box stays small */
+#propbar .cw-rec{display:none;}
+#props-body .oprow{width:100%;gap:6px;}
+#props-body .oprow input[type=range]{flex:1 1 auto;width:auto;min-width:0;}
+#props-body .oprow input[type=number]{flex:none;width:46px!important;padding:0 4px;text-align:center;}
+#props-body .oprow input[type=number]{-moz-appearance:textfield;appearance:textfield;} /* (no up / down arrows: the three digits need the room) */
+#props-body .oprow input[type=number]::-webkit-inner-spin-button,#props-body .oprow input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
