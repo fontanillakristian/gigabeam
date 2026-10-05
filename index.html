@@ -7,7 +7,9 @@
 <meta name="description" content="A fast, private, in-browser PDF viewer and markup editor for drawings and plan sets: markups, measurements, forms, bookmarks, watermarks and more. Nothing is uploaded.">
 <meta name="theme-color" content="#26272b">
 <title>Gigabeam</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f8cff'/%3E%3Cpath d='M11 7h7l5 5v13H11z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="assets/brand/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/brand/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
 <!-- Third-party libraries, bundled locally (see vendor/ for versions and licenses) so the app works offline -->
 <script src="vendor/pdf.min.js"></script>
 <script src="vendor/pdf-lib.min.js"></script>
@@ -20,7 +22,7 @@
 <!-- ===== Menu bar ===== -->
 <div id="menubar">
   <button class="tb m-only" id="m-menu" aria-label="Menu" aria-haspopup="menu"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-  <div class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/></svg></span>Gigabeam</div>
+  <div class="brand"><img class="logo" src="assets/brand/icon.svg" alt="" width="18" height="18">Gigabeam</div>
   <button class="menu-item" data-menu="File">File</button><button class="menu-item" data-menu="Edit">Edit</button><button class="menu-item" data-menu="View">View</button>
   <button class="menu-item" data-menu="Document">Document</button><button class="menu-item" data-menu="Markup">Markup</button><button class="menu-item" data-menu="Forms">Forms</button><button class="menu-item" data-menu="Measure">Measure</button>
   <button class="menu-item" data-menu="Tools">Tools</button><button class="menu-item" data-menu="Help">Help</button>
@@ -115,7 +117,7 @@
   <!-- The controls shown here follow the markup that is selected (and change it as you edit); with nothing selected they set the style
        of the NEXT markup. The hidden inputs color-pick / width-pick / size-pick hold those defaults (see js/propbar.js). -->
   <input type="color" id="color-pick" value="#e0362b"><input type="hidden" id="width-pick" value="2"><input type="hidden" id="size-pick" value="12">
-  <div class="field" data-f="color"><label id="pb-color-l">Color</label><span class="swatch" id="color-swatch" data-tip="Color"><i></i></span><input type="color" id="pb-color" value="#e0362b"></div>
+  <div class="field" data-f="color"><label id="pb-color-l">Color</label><input type="color" id="pb-color" value="#e0362b"></div>
   <div class="field" data-f="line"><label id="pb-line-l">Line</label><span class="combo"><input class="ctl" id="pb-w" inputmode="decimal" autocomplete="off" title="Line thickness: pick one or type any value" value="2"><button type="button" class="cb" tabindex="-1" aria-label="Line thickness list"><svg class="i sm"><use href="#i-chev"/></svg></button></span></div>
   <div class="field" data-f="lt"><label>Type</label><select class="ctl" id="pb-lt" title="Line type"></select></div>
   <div class="field" data-f="font"><label>Font</label><select class="ctl" id="pb-font" title="Font"></select></div>
@@ -168,7 +170,7 @@
     <div id="detect-bar" hidden><span id="detect-msg"></span><button id="detect-page">Add on this page</button><button id="detect-all" class="primary">Add all</button><button id="detect-clear">Discard</button></div>
     <main id="main">
       <div class="empty" id="empty-msg">
-        <div class="badge-i"><svg class="i"><use href="#i-pages"/></svg></div>
+        <img class="empty-logo" src="assets/brand/wordmark.png" alt="Gigabeam" width="300" height="75">
         <h2>Open a PDF to get started</h2>
         <p>Drop a file anywhere, or choose Open. Open several PDFs at once and each gets its own tab.</p>
         <button class="btn-primary" id="empty-open"><svg class="i sm"><use href="#i-open"/></svg>Open PDF</button>

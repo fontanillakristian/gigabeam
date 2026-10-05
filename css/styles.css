@@ -30,8 +30,7 @@ svg.i.sm{width:14px;height:14px;}
 /* ============ Menu bar ============ */
 #menubar{height:var(--h-menu);background:var(--c-chrome);border-bottom:1px solid var(--c-line);display:flex;align-items:center;padding:0 6px;gap:2px;flex:none;position:relative;z-index:60;}
 .brand{display:flex;align-items:center;gap:7px;padding:0 10px 0 6px;font-weight:600;letter-spacing:.01em;}
-.brand .logo{width:16px;height:16px;border-radius:3px;background:var(--c-accent);display:grid;place-items:center;}
-.brand .logo svg{width:11px;height:11px;stroke:#fff;stroke-width:2;fill:none;}
+.brand .logo{width:18px;height:18px;display:block;}
 .menu-item{padding:4px 9px;border-radius:var(--r);color:var(--c-dim);}
 .menu-item:hover,.menu-item.open{background:var(--c-raise);color:var(--c-text);}
 .pop{position:fixed;z-index:120;min-width:230px;background:#232428;border:1px solid var(--c-line);border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.55);padding:4px;display:none;}
@@ -254,6 +253,7 @@ body.pan .ann,body.pan .pg-svg *{pointer-events:none!important;} body.pan #main{
 .float-nav{position:absolute;right:22px;bottom:16px;display:flex;flex-direction:column;gap:1px;background:var(--c-chrome);border:1px solid var(--c-line);border-radius:var(--r);box-shadow:0 4px 14px rgba(0,0,0,.4);overflow:hidden;}
 .float-nav button{width:28px;height:28px;display:grid;place-items:center;color:var(--c-dim);} .float-nav button:hover{background:var(--c-raise);color:var(--c-text);}
 .empty{margin:0 auto;text-align:center;color:var(--c-dim);max-width:440px;padding:12vh 20px 0;line-height:1.5;}
+.empty .empty-logo{display:block;width:min(300px,80%);height:auto;margin:0 auto 22px;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.45);}
 .empty .badge-i{width:56px;height:56px;margin:0 auto 14px;border-radius:14px;background:var(--c-panel);border:1px solid var(--c-line);display:grid;place-items:center;color:var(--c-accent-hi);}
 .empty .badge-i svg{width:28px;height:28px;}
 .empty h2{margin:0 0 6px;font-size:16px;font-weight:600;color:var(--c-text);}
@@ -487,7 +487,6 @@ body.phone .empty{padding-top:6vh;} body.phone .empty ul{display:none;}
 
 /* ============ Options bar: combo boxes, format buttons, live per-markup controls (js/propbar.js) ============ */
 .field[hidden]{display:none!important;}
-#pb-color{position:absolute;opacity:0;pointer-events:none;width:0;height:0;}
 .combo{display:flex;flex:none;}
 .combo .ctl{width:48px;border-radius:var(--r) 0 0 var(--r);text-align:left;}
 .combo .cb{width:20px;height:24px;border:1px solid var(--c-line);border-left:0;background:var(--c-canvas);border-radius:0 var(--r) var(--r) 0;display:grid;place-items:center;color:var(--c-dim);}
@@ -524,3 +523,32 @@ body.single-page #pages-container{justify-content:flex-start;}
 #props-body .oprow input[type=range]{flex:1;min-width:0;margin-top:0;}
 #props-body .oprow input[type=number]{width:62px;margin-top:0;flex:none;}
 .scale-grp{display:none;align-items:center;gap:14px;flex:none;} body.mode-measure .scale-grp{display:flex;}
+
+/* ============ Color wells (js/widgets.js): one square opens the color window, three remember the latest colors ============ */
+.cwell{position:relative;display:inline-flex;align-items:center;gap:7px;flex:none;vertical-align:middle;}
+.cwell>input[type=color]{position:absolute!important;left:0;top:0;width:22px!important;height:22px!important;margin:0!important;padding:0!important;border:0!important;opacity:0;pointer-events:none;}
+.cw-main{width:22px;height:22px;border-radius:4px;border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);cursor:pointer;flex:none;}
+.cw-main:hover:not(:disabled){border-color:var(--c-accent-hi);}
+.cw-rec{display:inline-flex;gap:2px;}
+.cw-recent{width:13px;height:13px;border-radius:3px;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3);cursor:pointer;}
+.cw-recent:hover:not(:disabled){border-color:#fff;transform:scale(1.15);}
+.cw-recent.cur{outline:1.5px solid var(--c-accent-hi);outline-offset:1px;}
+.cwell.off{opacity:.4;}
+label .cwell{margin-left:8px;} #props-body label>.cwell{margin-top:6px;display:flex;margin-left:0;}
+.fp-color .cwell{margin-left:0;}
+
+/* ============ Sliders: a real track with its filled part, a round thumb and a tall grab area ============ */
+.range,#props-body input[type=range],.modal-box input[type=range]{-webkit-appearance:none;appearance:none;height:20px;width:100%;margin:0;padding:0;background:transparent;border:0;cursor:pointer;outline:0;--p:100%;}
+#props-body input[type=range]{margin-top:6px;}
+.range::-webkit-slider-runnable-track,#props-body input[type=range]::-webkit-slider-runnable-track,.modal-box input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--c-accent) var(--p),var(--c-line) var(--p));}
+.range::-webkit-slider-thumb,#props-body input[type=range]::-webkit-slider-thumb,.modal-box input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:#f4f6fb;border:2px solid var(--c-accent);box-shadow:0 1px 3px rgba(0,0,0,.5);}
+.range:hover::-webkit-slider-thumb,#props-body input[type=range]:hover::-webkit-slider-thumb{background:#fff;box-shadow:0 0 0 4px var(--c-accent-soft),0 1px 3px rgba(0,0,0,.5);}
+.range::-moz-range-track,#props-body input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--c-line);}
+.range::-moz-range-progress,#props-body input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--c-accent);}
+.range::-moz-range-thumb,#props-body input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:#f4f6fb;border:2px solid var(--c-accent);}
+.range:disabled,#props-body input[type=range]:disabled{opacity:.4;cursor:default;}
+.pbop{width:84px;} #props-body .oprow input[type=range]{margin-top:0;}
+/* (the panels and dialogs style every <button>; the color squares keep their own size) */
+#props-body .cwell button,.modal-box .cwell button,.fp-color .cwell button{padding:0;min-width:0;}
+#props-body .cwell .cw-main,.modal-box .cwell .cw-main{width:22px;height:22px;border-radius:4px;}
+#props-body .cwell .cw-recent,.modal-box .cwell .cw-recent{width:13px;height:13px;border-radius:3px;}

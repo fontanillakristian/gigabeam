@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/brand/wordmark.png" alt="Gigabeam" width="360"></p>
+
 # Gigabeam
 
 A fast, private PDF viewer and markup editor that runs entirely in the browser. Nothing is uploaded: files are opened, edited and saved on your own machine.
@@ -108,6 +110,16 @@ js/*.js                 the application (see "Code structure")
 vendor/                 bundled third-party libraries and fonts, with their licenses
 tools/                  helper scripts
 ```
+
+## Logo and app icon
+
+The logos are in [`build/brand-src/`](build/brand-src): `icon-source.svg` (the blue square with the pen nib) and `wordmark-source.png` (the wide "Gigabeam" logo). Everything else is made from them, so to change the logo replace those two files and run:
+
+```bash
+node node_modules/electron/cli.js tools/make-icons.js
+```
+
+That rewrites the tab icon, phone home-screen icons (`assets/brand/`) and the Windows app icon (`build/icon.ico`, `build/icon.png`).
 
 ## Replacing the icons
 

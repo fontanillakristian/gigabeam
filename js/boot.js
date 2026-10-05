@@ -13,6 +13,7 @@
   var ICON_DIR = 'assets/icons/';
   var APP_SCRIPTS = [
     'js/state.js',
+    'js/widgets.js',
     'js/platform.js',
     'js/utils.js',
     'js/documents.js',

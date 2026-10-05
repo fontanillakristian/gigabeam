@@ -51,7 +51,7 @@ function syncPropbar(){
   ['color','line','lt','font','size','fmt','fill'].forEach(n=>{ pbField(n).hidden=!show[n]; });
   pbNote.hidden=!note; pbNote.textContent=note;
   $('pb-color-l').textContent=label.color; $('pb-line-l').textContent=label.line; $('pb-size-l').textContent=label.size; $('pb-fill-l').textContent=label.fill;
-  if(show.color){ pbSet(pbColor,val.color); $('color-swatch').querySelector('i').style.background=val.color; }
+  if(show.color) pbSet(pbColor,val.color);
   if(show.line) pbSet(pbW,val.line!=null?+(+val.line).toFixed(2):''); if(show.size) pbSet(pbSize,val.size!=null?+(+val.size).toFixed(2):'');
   if(show.lt) pbLt.value=val.lt; if(show.font) pbFont.value=val.font;
   if(show.fmt) pbBar.querySelectorAll('.pbfmt button').forEach(b=>b.classList.toggle('on',!!fmt[b.dataset.k]));
@@ -81,7 +81,6 @@ function pbEdit(fn){
 pbColor.addEventListener('input',()=>{ const v=pbColor.value, m=pbModel();
   if(m.mode==='multi'){ if(!pbPushed){ pushHistory(); pbPushed=true; } multiItems().forEach(x=>{ const o=(pdr(x.page)[x.arrName]||[])[x.idx]; if(o&&o.color){ if(o.textColor==null&&(o.leader!==undefined||o.value!==undefined)) o.textColor=o.color; o.color=v; } }); renderAll(); pbAfter(); return; }
   pbEdit((o,a,def)=>{ if(def) colorPick.value=v; else if(a==='texts') o.textColor=v; else{ if(a==='measurements'&&o.textColor==null) o.textColor=o.color; o.color=v; } }); });
-$('color-swatch').onclick=()=>pbColor.click();
 // line thickness and size: type a number or pick one
 function pbNumber(input,list,min,max,step,apply){
   const ok=n=>n>=min&&n<=max, set=n=>{ n=Math.min(max,Math.max(min,+(+n).toFixed(2))); input.value=n; apply(n); };

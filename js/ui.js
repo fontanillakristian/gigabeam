@@ -7,8 +7,7 @@ function openProps(byUser){
   if(isPhone()&&!byUser) return;
   if(!byUser){ if(propsAutoShown||propsUserChoice) return; propsAutoShown=true; }
   propsPanel.classList.remove('hidden'); propsBtn.classList.add('on'); if(isNarrow()) hideLeft(); }
-function syncSwatch(){ document.querySelector('#color-swatch i').style.background=colorPick.value; }
-$('color-swatch').onclick=()=>colorPick.click(); colorPick.addEventListener('input',syncSwatch);
+function syncSwatch(){ if(typeof syncPropbar==='function') syncPropbar(); } // (the color shown in the options bar; see propbar.js)
 $('empty-open').onclick=()=>platform.open();
 
 // ---- tool buttons (the engine's old buildToolbar() used to attach these)

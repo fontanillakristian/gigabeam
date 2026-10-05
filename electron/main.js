@@ -26,7 +26,7 @@ function sendPaths(paths) {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1400, height: 900, minWidth: 640, minHeight: 480, backgroundColor: '#1b1c1f', title: 'Gigabeam', show: false,
+    width: 1400, height: 900, minWidth: 640, minHeight: 480, backgroundColor: '#1b1c1f', title: 'Gigabeam', show: false, icon: path.join(__dirname, '..', 'assets', 'brand', 'icon-512.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: false }
   });
   Menu.setApplicationMenu(null);                           // the app draws its own menu bar
