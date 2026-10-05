@@ -36,7 +36,7 @@ self.onmessage=async e=>{
   if(m.type==='init'){
     try{
       importScripts(m.lib);
-      importScripts(...WORKER_SCRIPTS.map(n=>n+'.js'));
+      importScripts(...WORKER_SCRIPTS.map(n=>n+'.js?v='+(m.build||''))); // (the same build as the page, see boot.js)
       measureCtx=(typeof OffscreenCanvas!=='undefined')?new OffscreenCanvas(1,1).getContext('2d'):null; // text measuring for legacy callouts
       self.postMessage({type:'ready'});
     }catch(err){ self.postMessage({type:'initError',message:(err&&err.message)||String(err)}); }

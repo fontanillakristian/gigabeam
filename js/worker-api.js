@@ -13,7 +13,7 @@ function startWorker(){
       pdfWorker.failed=true; pdfWorker.pending.forEach(p=>p.reject(Object.assign(new Error(msg),{workerDied:true}))); pdfWorker.pending.clear(); resolve(false);
     };
     try{
-      const w=new Worker('js/pdf-worker.js'); pdfWorker.w=w;
+      const w=new Worker('js/pdf-worker.js?v='+(window.APP_BUILD||'')); pdfWorker.w=w;
       w.onerror=e=>fail((e&&e.message)||'worker error');
       w.onmessage=e=>{
         const m=e.data;
@@ -22,7 +22,7 @@ function startWorker(){
         else{ const p=pdfWorker.pending.get(m.id); if(!p) return; pdfWorker.pending.delete(m.id); if(m.type==='result') p.resolve(m.result); else p.reject(Object.assign(new Error(m.message),{code:m.code})); }
       };
       const lib=document.querySelector('script[src*="pdf-lib"]');
-      w.postMessage({type:'init',lib:lib&&lib.src});
+      w.postMessage({type:'init',lib:lib&&lib.src,build:window.APP_BUILD||''});
     }catch(err){ fail(err.message); }
   });
   return pdfWorker.ready;

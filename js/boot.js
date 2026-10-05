@@ -6,6 +6,10 @@
    time that references things defined in files listed before it. */
 (function () {
   'use strict';
+  // The publish workflow (.github/workflows/pages.yml) replaces __BUILD__ with the commit id. Every script is requested with it (?v=...), so a visitor's browser
+  // can never mix a new page with cached scripts of an older version. Locally it stays literal, which is harmless.
+  var BUILD = '__BUILD__';
+  window.APP_BUILD = BUILD;
   var ICON_DIR = 'assets/icons/';
   var APP_SCRIPTS = [
     'js/state.js',
@@ -76,7 +80,7 @@
   function loadScript(src) {
     return new Promise(function (resolve, reject) {
       var s = document.createElement('script');
-      s.src = src; s.async = false;
+      s.src = src + '?v=' + BUILD; s.async = false;
       s.onload = resolve; s.onerror = function () { reject(new Error('Could not load ' + src)); };
       document.body.appendChild(s);
     });

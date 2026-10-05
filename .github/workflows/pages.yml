@@ -30,6 +30,8 @@ jobs:
         run: |
           mkdir _site
           cp -r index.html css js assets vendor LICENSE _site/
+          # stamp the build id into the page and the loader, so browsers never run cached scripts from an older version
+          sed -i "s/__BUILD__/${GITHUB_SHA::8}/g" _site/index.html _site/js/boot.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
