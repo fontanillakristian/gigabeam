@@ -194,6 +194,10 @@ Current versions of Chrome, Edge, Firefox and Safari.
 - Field detection is a best guess: expect to discard a few suggestions and add a few by hand, especially on dense or skewed scans and on drawing sheets.
 - OCR is English only and does not read handwriting. Text pages take about 3–5 seconds each; dense drawing sheets 20–60 seconds. Words it is unsure of (under 40% confidence) are left out. Other programs' markups and form fields are shown and kept, but can't be edited here.
 
+## Code signing
+
+Windows downloads are signed. Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org). See the [code signing policy](CODE_SIGNING_POLICY.md) for what is signed, who approves releases, and the privacy statement.
+
 ## License
 
 Copyright (C) 2026 Kristian Carl B. Fontanilla

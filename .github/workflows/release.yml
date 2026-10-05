@@ -1,6 +1,10 @@
 name: Build Windows release
 
 # Push a tag like v0.1.0 to build the installer and the portable .exe and attach them to a GitHub Release.
+#
+# Code signing (free, SignPath Foundation, see CODE_SIGNING_POLICY.md): once the SignPath project exists, add the repository secret SIGNPATH_API_TOKEN
+# and the repository variable SIGNPATH_ORGANIZATION_ID (Settings > Secrets and variables > Actions). From then on the two .exe files are sent to SignPath
+# after the build and the signed copies are what is attached to the release. Without the secret everything works as before and the files stay unsigned.
 on:
   push:
     tags: ['v*']
@@ -8,10 +12,13 @@ on:
 
 permissions:
   contents: write
+  actions: read   # (SignPath reads this run's details to verify where the file was built)
 
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,7 +28,43 @@ jobs:
       - run: npm ci
       - run: npm run dist
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # not code-signed yet
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # electron-builder itself does not sign; SignPath does, below
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gigabeam-windows-unsigned
+          path: |
+            dist/*.exe
+            dist/latest.yml
+      # ---- signing (only when the SignPath token is set)
+      - name: Upload the files for signing
+        id: to-sign
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: to-sign
+          path: dist/*.exe
+      - name: Read the version
+        id: ver
+        if: env.SIGNPATH_API_TOKEN != ''
+        shell: bash
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Sign with SignPath
+        if: env.SIGNPATH_API_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'gigabeam' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          github-artifact-id: ${{ steps.to-sign.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+          parameters: |
+            version: "${{ steps.ver.outputs.version }}"
+      - name: Use the signed files
+        if: env.SIGNPATH_API_TOKEN != ''
+        shell: bash
+        run: cp -f signed/*.exe dist/
       - uses: actions/upload-artifact@v4
         with:
           name: gigabeam-windows

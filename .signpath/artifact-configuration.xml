@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tells SignPath which files inside the zip that the release workflow uploads should be signed, and what their metadata must say.
+     Paste this into the artifact configuration of your SignPath project (Project > Artifact configurations > Add > default).
+     ${version} is passed in by .github/workflows/release.yml from package.json. -->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="Gigabeam-Setup-*.exe" product-name="Gigabeam" product-version="${version}">
+      <authenticode-sign/>
+    </pe-file>
+    <pe-file path="Gigabeam-Portable-*.exe" product-name="Gigabeam" product-version="${version}">
+      <authenticode-sign/>
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
