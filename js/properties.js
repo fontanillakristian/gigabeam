@@ -163,6 +163,7 @@ document.addEventListener('keydown',e=>{
   }
   if(k==='delete'||k==='backspace'){
     if(tag==='INPUT'||tag==='SELECT') return; // let those fields edit normally
+    if(k==='delete'&&deleteFromPagesPanel()){ e.preventDefault(); return; } // pages picked in the Pages panel
     if(active&&active.isContentEditable) return; // typing inside a text box: Backspace / Delete only edit its text, never remove the box (an empty form blank is meant to stay). Remove a box with its x button, or press Esc and then Delete.
     if(selected){ deleteSelected(); e.preventDefault(); }
     return;

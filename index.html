@@ -32,9 +32,6 @@
 <div class="pop" id="menu-pop"></div>
 <div class="pop" id="cmd-pop"></div>
 
-<!-- ===== Document tabs ===== -->
-<div id="tab-bar"></div>
-
 <!-- ===== Main toolbar ===== -->
 <div id="toolbar">
   <div class="grp">
@@ -137,6 +134,9 @@
   <span class="chip">Tool: <b id="tool-name">Select / Move</b></span>
 </div>
 
+<!-- ===== Document tabs (below the options bar) ===== -->
+<div id="tab-bar"></div>
+
 <!-- ===== Workspace ===== -->
 <div id="work">
   <div class="rail" id="rail-left">
@@ -221,7 +221,7 @@
     <button class="icon-btn" id="fit-page" data-tip="Fit page" disabled><svg class="i sm"><use href="#i-fit"/></svg></button>
     <button class="icon-btn" id="fit-width" data-tip="Fit width" disabled><svg class="i sm"><use href="#i-fitw"/></svg></button>
     <button class="icon-btn" id="zoom-out" disabled><svg class="i sm"><use href="#i-minus"/></svg></button>
-    <input class="range zoom-slider" id="zoom-range" type="range" min="10" max="240" step="5" value="100" disabled>
+    <input class="range zoom-slider" id="zoom-range" type="range" min="10" max="400" step="5" value="100" disabled>
     <button class="icon-btn" id="zoom-in" disabled><svg class="i sm"><use href="#i-plus"/></svg></button>
     <span id="zoom-label">100%</span>
   </div>

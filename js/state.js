@@ -40,6 +40,6 @@ const PHONE_LAYOUT=(()=>{ try{ return new URLSearchParams(location.search).get('
 const PHONE_MQ=matchMedia(PHONE_LAYOUT?'(max-width:600px), (max-height:500px) and (pointer:coarse)':'not all');
 const isPhone=()=>PHONE_MQ.matches;
 const coarse=()=>matchMedia('(pointer:coarse)').matches; // a finger is the main pointer: bigger grab handles
-const ZOOM_MIN=0.1, ZOOM_MAX=3; // engine scale (1.25 = 100%); the low end lets a whole drawing sheet fit a phone screen
+const ZOOM_MIN=0.1, ZOOM_MAX=5; // engine scale (1.25 = 100%); the low end lets a whole drawing sheet fit a phone screen
 const fitPad=()=>isPhone()?24:90; // room kept beside a page when fitting it to the window
 let measureCtx=null; try{ measureCtx=document.createElement('canvas').getContext('2d'); }catch(e){}

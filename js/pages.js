@@ -276,6 +276,15 @@ async function deletePages(nums){ return withPageLock(async()=>{
   await renderPage(); await renderPagePanel();
 });}
 const deletePage=n=>deletePages([n]);
+// The Delete key removes the pages ticked in the Pages panel, or the page that was just clicked there (asks first, and Undo brings them back).
+// It only applies while the last click was in that panel; after a click on the page itself, Delete keeps removing the selected markup.
+let pagesFocus=false;
+document.addEventListener('pointerdown',e=>{ pagesFocus=!!(e.target.closest&&e.target.closest('#pages-list,#sel-bar')); },true);
+function deleteFromPagesPanel(){
+  if(!pdfDoc||pageOpBusy||!pagesFocus||pagesPanel.classList.contains('hidden')||document.querySelector('.modal-ovl')) return false;
+  const picked=thumbSel.size?Array.from(thumbSel):[currentPage];
+  deletePages(picked); return true;
+}
 async function insertBlankPage(afterPageNum){ return withPageLock(async()=>{
   const r=await heavy('insertBlank',{after:afterPageNum});
   shiftAnnotationPages(n=> n>afterPageNum?n+1:n);

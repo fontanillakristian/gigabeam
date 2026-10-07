@@ -26,7 +26,7 @@ propsBtn.onclick=()=>{ propsUserChoice=true; if(propsPanel.classList.contains('h
 $('props-close').onclick=()=>{ propsUserChoice=true; closeProps(); };
 [['left-split','left-panel','--left-w',1,150,420],['right-split','right-panel','--right-w',-1,220,480]].forEach(([s,p,v,dir,min,max])=>{
   const sp=$(s); sp.onmousedown=e=>{ e.preventDefault(); const x0=e.clientX, w0=$(p).offsetWidth; sp.classList.add('drag'); document.body.classList.add('resizing');
-    const mv=ev=>{ const w=Math.min(max,Math.max(min,w0+dir*(ev.clientX-x0))); document.documentElement.style.setProperty(v,w+'px'); if(v==='--left-w') thumbSlider.max=thumbMax(); }; // (the thumbnail slider's range follows the panel's width)
+    const mv=ev=>{ const w=Math.min(max,Math.max(min,w0+dir*(ev.clientX-x0))); document.documentElement.style.setProperty(v,w+'px'); if(v==='--left-w'){ thumbSlider.max=thumbMax(); if(thumbAuto) setThumbSize(thumbMax()); } }; // (the thumbnail slider's range follows the panel's width)
     const up=()=>{ sp.classList.remove('drag'); document.body.classList.remove('resizing'); removeEventListener('mousemove',mv); removeEventListener('mouseup',up); };
     addEventListener('mousemove',mv); addEventListener('mouseup',up); }; });
 
@@ -34,14 +34,15 @@ $('props-close').onclick=()=>{ propsUserChoice=true; closeProps(); };
 const THUMB_PAD=34, THUMB_MIN=70, thumbSlider=$('thumb-size'); let thumbRepaint=null;
 // The panel keeps whatever width it has; thumbnails can grow up to its width, so the slider's top end follows the panel (set by dragging its edge).
 const thumbMax=()=>Math.max(THUMB_MIN+20,Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--left-w'))||216)-THUMB_PAD));
+let thumbAuto=true; // true while the slider is at the far right: the thumbnails fill the panel, whatever its width (until the person moves the slider)
 function setThumbSize(px){
   thumbSlider.max=thumbMax(); thumbW=Math.round(Math.min(thumbMax(),Math.max(THUMB_MIN,px))); thumbSlider.value=thumbW;
   const st=document.documentElement.style; st.setProperty('--thumb-w',thumbW+'px');
   clearTimeout(thumbRepaint); thumbRepaint=setTimeout(()=>{ if(pdfDoc) renderPagePanel(); },350); // repaint sharp at the new size once it settles
-  try{ localStorage.setItem('gb-thumb',String(thumbW)); }catch(e){}
 }
-thumbSlider.addEventListener('input',()=>setThumbSize(+thumbSlider.value));
-{ let saved=0; try{ saved=+localStorage.getItem('gb-thumb'); }catch(e){} thumbSlider.max=thumbMax(); if(saved>=THUMB_MIN) setThumbSize(saved); }
+thumbSlider.addEventListener('input',()=>{ const v=+thumbSlider.value; thumbAuto=v>=thumbMax(); setThumbSize(v); });
+try{ localStorage.removeItem('gb-thumb'); }catch(e){} // (older versions remembered the size; it now always starts at the full panel width)
+setThumbSize(thumbMax());
 
 // ---- page view: continuous scroll, or one page at a time (the choice is remembered)
 function setViewMode(m,quiet){
@@ -59,7 +60,7 @@ $('view-toggle').onclick=()=>setViewMode(viewMode==='single'?'continuous':'singl
 // ---- zoom + fit (engine scale 1.25 == 100%)
 const zoomRange=$('zoom-range');
 const ZOOM_CTRLS=()=>[zoomOutBtn,zoomInBtn,downloadBtn,printBtn,zoomRange,$('fit-width'),$('fit-page'),$('bm-toggle')];
-function syncZoomUI(){ const p=Math.round(scale/1.25*100); zoomLabel.textContent=p+'%'; zoomRange.value=Math.min(240,Math.max(10,p)); }
+function syncZoomUI(){ const p=Math.round(scale/1.25*100); zoomLabel.textContent=p+'%'; zoomRange.value=Math.min(400,Math.max(10,p)); }
 zoomRange.addEventListener('input',()=>{ zoomLabel.textContent=zoomRange.value+'%'; });
 zoomRange.addEventListener('change',()=>setZoom(+zoomRange.value/100*1.25));
 function fitZoom(mode){ const v=pageViews[currentPage-1]; if(!v) return; let s=(main.clientWidth-fitPad())/v.ptsW; if(mode==='page') s=Math.min(s,(main.clientHeight-(isPhone()?24:64))/v.ptsH); setZoom(s,{pageTop:true}); } // (fit keeps the top of the page in view rather than centring on a markup)
@@ -176,7 +177,7 @@ function applyPhone(){
   const on=isPhone(), was=document.body.classList.contains('phone'); if(on===was) return;
   document.body.classList.toggle('phone',on); closeMenus();
   if(on){ $('menubar').insertBefore(tabBar,$('menubar').querySelector('.spacer')); hideLeft(); closeProps(); }
-  else $('toolbar').before(tabBar);
+  else $('propbar').after(tabBar);
 }
 applyPhone();
 (PHONE_MQ.addEventListener?PHONE_MQ.addEventListener('change',applyPhone):PHONE_MQ.addListener(applyPhone)); // (older Safari only has addListener)
